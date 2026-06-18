@@ -7,6 +7,7 @@ export interface OverviewState {
   tags: Array<[string, number]>;
   heatmap: HeatmapDay[];
   selectedDate: string;
+  todayDate: string;
   editingRecordId?: string;
   filters: ViewFilters;
 }
@@ -56,6 +57,9 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
   appendEl(profileText, 'h2', '', state.settings.userName);
   appendEl(profileText, 'p', '', state.settings.userSlogan);
 
+  // Heatmap sits between the profile/slogan and the filter controls.
+  renderHeatmap(container, state.heatmap, state.todayDate, state.selectedDate, callbacks);
+
   appendDiv(container, 'oqm-section-label', '筛选');
 
   const typeSelect = appendEl(container, 'select', 'oqm-type-filter') as HTMLSelectElement;
@@ -88,8 +92,6 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
       button.onclick = () => callbacks.onFilterChange({ tag });
     }
   }
-
-  renderHeatmap(container, state.heatmap, state.selectedDate, callbacks);
 }
 
 function renderMain(container: HTMLElement, state: OverviewState, callbacks: OverviewCallbacks): void {
@@ -170,43 +172,22 @@ function renderRecord(list: HTMLElement, record: QuickMemoRecord, editing: boole
   (appendEl(actions, 'button', '', '打开源文件') as HTMLButtonElement).onclick = () => callbacks.onOpenSource(record);
 }
 
-function renderHeatmap(container: HTMLElement, heatmap: HeatmapDay[], selectedDate: string, callbacks: OverviewCallbacks): void {
+function renderHeatmap(container: HTMLElement, heatmap: HeatmapDay[], todayDate: string, selectedDate: string, callbacks: OverviewCallbacks): void {
   const counts = new Map<string, number>();
   for (const day of heatmap) counts.set(day.date, day.count);
   const max = Math.max(1, ...heatmap.map((day) => day.count));
 
   appendDiv(container, 'oqm-section-label', '近 3 个月活动');
 
-  const [year, month] = selectedDate.split('-').map((part) => Number(part));
-  // Current month plus the two previous, oldest first so the column reads top → bottom.
-  const months: Array<readonly [number, number]> = [-2, -1, 0].map((delta) => monthOffset(year, month, delta));
-  for (const [blockYear, blockMonth] of months) {
-    renderMonthBlock(container, blockYear, blockMonth, counts, max, selectedDate, callbacks);
-  }
-}
+  // A single flat stream of small squares for the last ~3 months ending today.
+  // Squares are not grouped by month; they wrap to fill the sidebar width.
+  const grid = appendDiv(container, 'oqm-heatmap-grid');
+  const end = parseDate(todayDate);
+  const cursor = new Date(end);
+  cursor.setDate(cursor.getDate() - 89); // 90 days inclusive
 
-function renderMonthBlock(
-  container: HTMLElement,
-  year: number,
-  month: number,
-  counts: Map<string, number>,
-  max: number,
-  selectedDate: string,
-  callbacks: OverviewCallbacks,
-): void {
-  const block = appendDiv(container, 'oqm-heatmap-month-block');
-  appendEl(block, 'div', 'oqm-heatmap-month-label', `${year}年${month}月`);
-
-  const grid = appendDiv(block, 'oqm-heatmap-month-grid');
-  const firstWeekday = new Date(year, month - 1, 1).getDay(); // 0 = Sunday
-  const daysInMonth = new Date(year, month, 0).getDate();
-
-  for (let blank = 0; blank < firstWeekday; blank += 1) {
-    appendDiv(grid, 'oqm-heatmap-blank');
-  }
-
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const dateStr = `${year}-${pad2(month)}-${pad2(day)}`;
+  while (cursor <= end) {
+    const dateStr = formatDay(cursor);
     const count = counts.get(dateStr) ?? 0;
     const level = count === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((count / max) * 4)));
     const isSelected = dateStr === selectedDate;
@@ -215,12 +196,17 @@ function renderMonthBlock(
     button.title = `${dateStr}：${count} 条`;
     button.setAttribute('aria-label', `${dateStr}，${count} 条记录`);
     button.onclick = () => callbacks.onSelectDate(dateStr);
+    cursor.setDate(cursor.getDate() + 1);
   }
 }
 
-function monthOffset(year: number, month: number, delta: number): readonly [number, number] {
-  const normalized = new Date(year, month - 1 + delta, 1);
-  return [normalized.getFullYear(), normalized.getMonth() + 1];
+function parseDate(value: string): Date {
+  const [year, month, day] = value.split('-').map((part) => Number(part));
+  return new Date(year, month - 1, day);
+}
+
+function formatDay(date: Date): string {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
 function pad2(value: number): string {

@@ -80,6 +80,7 @@ export class QuickMemoView extends ItemView {
       tags: this.index.tags(),
       heatmap: this.index.heatmap(),
       selectedDate: this.selectedDate,
+      todayDate: today(),
       editingRecordId: this.editingRecordId,
       filters: this.filters,
     }, {

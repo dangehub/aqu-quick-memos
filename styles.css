@@ -295,31 +295,13 @@
   background: var(--background-secondary);
 }
 
-/* ---------- Heatmap (GitHub-style, last 3 months, stacked in sidebar) ---------- */
+/* ---------- Heatmap (flat stream of squares, fills sidebar width) ---------- */
 
-.oqm-heatmap-month-block {
-  margin-bottom: var(--size-4-3);
-}
-
-.oqm-heatmap-month-block:last-child {
-  margin-bottom: 0;
-}
-
-.oqm-heatmap-month-label {
-  font-size: var(--font-ui-smaller);
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.oqm-heatmap-month-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 12px);
-  grid-auto-rows: 12px;
+.oqm-heatmap-grid {
+  display: flex;
+  flex-wrap: wrap;
   gap: 3px;
-}
-
-.oqm-heatmap-blank {
-  visibility: hidden;
+  margin-bottom: var(--size-4-3);
 }
 
 .oqm-heatmap-day {

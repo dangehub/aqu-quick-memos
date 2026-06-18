@@ -25,6 +25,7 @@ describe('renderOverview', () => {
       tags: [['#a', 1]],
       heatmap: [{ date: '2026-06-18', count: 1 }],
       selectedDate: '2026-06-18',
+      todayDate: '2026-06-18',
       editingRecordId: undefined,
       filters: {},
     }, callbacks);
@@ -35,12 +36,11 @@ describe('renderOverview', () => {
     expect(root.textContent).toContain('idea #a');
     expect(root.textContent).toContain('#a');
     expect(root.querySelector<HTMLTextAreaElement>('.oqm-input')?.placeholder).toContain('Markdown');
-    // Heatmap lives inside the sidebar and shows three months (April + May + June 2026).
-    const labels = Array.from(root.querySelectorAll('.oqm-heatmap-month-label')).map((el) => el.textContent);
-    expect(labels).toEqual(['2026年4月', '2026年5月', '2026年6月']);
+    // Heatmap is a single flat stream of the last ~3 months (90 days ending today),
+    // placed between the slogan and the filter area. No month grouping or date text.
+    expect(root.querySelectorAll('.oqm-heatmap-month-label')).toHaveLength(0);
     const dayCells = root.querySelectorAll('.oqm-heatmap-day');
-    expect(dayCells).toHaveLength(30 + 31 + 30); // Apr + May + Jun
-    // Squares carry no date number; locate the recorded day by its tooltip.
+    expect(dayCells).toHaveLength(90); // 90-day window ending 2026-06-18
     const recordDay = Array.from(dayCells).find((cell) => cell.getAttribute('title') === '2026-06-18：1 条');
     expect(recordDay?.classList.contains('oqm-heatmap-level-4')).toBe(true);
     expect(recordDay?.classList.contains('is-selected')).toBe(true);
@@ -55,6 +55,7 @@ describe('renderOverview', () => {
       tags: [],
       heatmap: [{ date: '2026-06-15', count: 2 }],
       selectedDate: '2026-06-18',
+      todayDate: '2026-06-18',
       editingRecordId: undefined,
       filters: {},
     }, callbacks);
@@ -72,6 +73,7 @@ describe('renderOverview', () => {
       tags: [],
       heatmap: [],
       selectedDate: '2026-06-18',
+      todayDate: '2026-06-18',
       editingRecordId: undefined,
       filters: {},
     }, makeCallbacks());
@@ -94,6 +96,7 @@ describe('renderOverview', () => {
       tags: [],
       heatmap: [],
       selectedDate: '2026-06-18',
+      todayDate: '2026-06-18',
       editingRecordId: undefined,
       filters: { type: 'todo', todoStatus: 'completed' },
     }, makeCallbacks());
@@ -106,6 +109,7 @@ describe('renderOverview', () => {
       tags: [],
       heatmap: [],
       selectedDate: '2026-06-18',
+      todayDate: '2026-06-18',
       editingRecordId: undefined,
       filters: { type: 'todo', todoStatus: 'open' },
     }, makeCallbacks());
@@ -121,6 +125,7 @@ describe('renderOverview', () => {
       tags: [],
       heatmap: [],
       selectedDate: '2026-06-18',
+      todayDate: '2026-06-18',
       editingRecordId: undefined,
       filters: {},
     }, callbacks);
