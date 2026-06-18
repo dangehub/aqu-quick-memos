@@ -4,13 +4,15 @@ import type { QuickMemoRecord, QuickMemoSettings, QuickMemoType } from '../types
 import type { IndexService } from '../index/IndexService';
 import type { MarkdownRecordRepository } from '../markdown/MarkdownRecordRepository';
 import { randomIdSuffix } from '../markdown/id';
-import { filterRecordsForView, sortRecordsForDisplay, type ViewFilters } from './viewState';
+import { filterRecordsForView, rollSelectedDate, sortRecordsForDisplay, type ViewFilters } from './viewState';
 import { renderOverview } from './render';
 
 export class QuickMemoView extends ItemView {
   private selectedDate = today();
+  private currentDay = today();
   private filters: ViewFilters = {};
   private editingRecordId: string | undefined;
+  private dayWatcher: number | undefined;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -30,15 +32,35 @@ export class QuickMemoView extends ItemView {
   }
 
   async onOpen(): Promise<void> {
+    this.currentDay = today();
     await this.index.rebuild();
     this.notifyWarnings();
     this.render();
+    // Check once a minute for a local-day rollover while the view stays open.
+    this.dayWatcher = window.setInterval(() => this.checkDayRollover(), 60_000);
+  }
+
+  async onClose(): Promise<void> {
+    if (this.dayWatcher !== undefined) {
+      window.clearInterval(this.dayWatcher);
+      this.dayWatcher = undefined;
+    }
   }
 
   async refresh(): Promise<void> {
     await this.index.refreshChangedFiles();
     this.notifyWarnings();
     this.render();
+  }
+
+  private checkDayRollover(): void {
+    const now = today();
+    const next = rollSelectedDate(this.selectedDate, this.currentDay, now);
+    this.currentDay = now;
+    if (next !== undefined) {
+      this.selectedDate = next;
+      this.render();
+    }
   }
 
   private notifyWarnings(): void {

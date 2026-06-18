@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { QuickMemoRecord } from '../src/types';
-import { dateRangeForPreset, filterRecordsForView, sortRecordsForDisplay } from '../src/view/viewState';
+import { dateRangeForPreset, filterRecordsForView, rollSelectedDate, sortRecordsForDisplay } from '../src/view/viewState';
 
 const records: QuickMemoRecord[] = [
   makeRecord('1', '2026-06-18', '09:00', 'flash', 'idea #a'),
@@ -54,6 +54,20 @@ describe('viewState', () => {
       const copy = [...pair];
       sortRecordsForDisplay(pair, 'desc');
       expect(pair.map((record) => record.id)).toEqual(copy.map((record) => record.id));
+    });
+  });
+
+  describe('rollSelectedDate', () => {
+    it('returns undefined when the day has not rolled over', () => {
+      expect(rollSelectedDate('2026-06-19', '2026-06-19', '2026-06-19')).toBeUndefined();
+    });
+
+    it('follows the clock to the new day when the user was on today', () => {
+      expect(rollSelectedDate('2026-06-19', '2026-06-19', '2026-06-20')).toBe('2026-06-20');
+    });
+
+    it('leaves a historical date untouched across midnight', () => {
+      expect(rollSelectedDate('2026-06-10', '2026-06-19', '2026-06-20')).toBeUndefined();
     });
   });
 });

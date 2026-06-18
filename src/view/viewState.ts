@@ -49,3 +49,18 @@ function addDays(date: string, delta: number): string {
   parsed.setUTCDate(parsed.getUTCDate() + delta);
   return parsed.toISOString().slice(0, 10);
 }
+
+/**
+ * Decide whether the selected date should follow the clock across midnight.
+ *
+ * - `previousToday` is the local date the view last considered "today".
+ * - `now` is the current local date.
+ *
+ * Returns the new selectedDate when the day rolled over AND the user was viewing
+ * "today"; returns `undefined` otherwise (no rollover, or the user is browsing a
+ * historical date and should not be pulled back to today).
+ */
+export function rollSelectedDate(selectedDate: string, previousToday: string, now: string): string | undefined {
+  if (now === previousToday) return undefined;
+  return selectedDate === previousToday ? now : undefined;
+}
