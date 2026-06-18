@@ -7,11 +7,16 @@ const TYPE_LABELS: Record<QuickMemoType, string> = {
   todo: '待办',
 };
 
-const LABEL_TYPES: Record<string, QuickMemoType> = {
+const LABEL_TYPES: Record<'记录' | '闪念' | '待办', QuickMemoType> = {
   记录: 'record',
   闪念: 'flash',
   待办: 'todo',
 };
+
+function toQuickMemoType(label: string): QuickMemoType | undefined {
+  if (label === '记录' || label === '闪念' || label === '待办') return LABEL_TYPES[label];
+  return undefined;
+}
 
 const TASK_RE = /^- \[( |x|X)\] ([0-9]{2}:[0-9]{2}) \[(记录|闪念|待办)\] (.*)$/u;
 const LIST_RE = /^- ([0-9]{2}:[0-9]{2}) \[(记录|闪念|待办)\] (.*)$/u;
@@ -93,7 +98,8 @@ export class QuickMemoParser {
     const time = isTask ? match[2] : match[1];
     const label = isTask ? match[3] : match[2];
     const content = isTask ? match[4] : match[3];
-    const type = LABEL_TYPES[label];
+    const type = toQuickMemoType(label);
+    if (!type) return undefined;
     const raw = body ? `${line}\n${body}` : line;
 
     return {
@@ -131,7 +137,7 @@ export class QuickMemoParser {
 }
 
 function isIndentedContinuation(line: string): boolean {
-  return line.startsWith('  ') || line.trim() === '';
+  return line.startsWith('  ');
 }
 
 function extractTags(text: string): string[] {

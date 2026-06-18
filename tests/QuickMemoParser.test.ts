@@ -47,4 +47,30 @@ describe('QuickMemoParser', () => {
     expect(parser.serializeRecord({ date: '2026-06-18', time: '10:20', type: 'todo', content: 'task', completed: false }, undefined)).toBe('- [ ] 10:20 [待办] task');
     expect(parser.serializeRecord({ date: '2026-06-18', time: '10:20', type: 'todo', content: 'task', completed: true }, 'oqm-20260618-102000-e5f6')).toBe('- [x] 10:20 [待办] task ^oqm-20260618-102000-e5f6');
   });
+
+  it('warns for non-list content inside Quick Memo section', () => {
+    const markdown = '## Quick Memo\n\nPlain text line\n\n- 08:00 [记录] valid record\n';
+    const result = parser.parseFile('test.md', '2026-06-18', markdown);
+    expect(result.records).toHaveLength(1);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      filePath: 'test.md',
+      line: 3,
+      message: 'Non-list content inside Quick Memo section was ignored.',
+      raw: 'Plain text line',
+    });
+  });
+
+  it('warns for unsupported list item inside Quick Memo section', () => {
+    const markdown = '## Quick Memo\n\n- not a valid record\n\n- 08:00 [记录] valid record\n';
+    const result = parser.parseFile('test.md', '2026-06-18', markdown);
+    expect(result.records).toHaveLength(1);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      filePath: 'test.md',
+      line: 3,
+      message: 'Quick Memo list item did not match a supported record format.',
+      raw: '- not a valid record',
+    });
+  });
 });

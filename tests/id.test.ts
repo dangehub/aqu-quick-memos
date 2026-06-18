@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { contentHash, createBlockId, extractBlockId, stripBlockId } from '../src/markdown/id';
+import { describe, expect, it, vi } from 'vitest';
+import { contentHash, createBlockId, extractBlockId, randomIdSuffix, stripBlockId } from '../src/markdown/id';
 
 describe('id helpers', () => {
   it('creates deterministic block ids from date, time, and suffix', () => {
@@ -18,5 +18,11 @@ describe('id helpers', () => {
 
   it('hashes equivalent whitespace consistently', () => {
     expect(contentHash(' hello\nworld ')).toBe(contentHash('hello world'));
+  });
+
+  it('produces a 6-char lowercase alphanumeric suffix from randomIdSuffix', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+    expect(randomIdSuffix()).toBe('4fzzzx');
+    vi.restoreAllMocks();
   });
 });
