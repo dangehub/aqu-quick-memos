@@ -1,4 +1,4 @@
-import type { DateRangePreset, QuickMemoRecord, QuickMemoType } from '../types';
+import type { DateRangePreset, QuickMemoRecord, QuickMemoType, SortDirection } from '../types';
 
 export type TypeFilter = 'all' | QuickMemoType;
 export type TodoStatusFilter = 'all' | 'completed' | 'open';
@@ -24,6 +24,17 @@ export function filterRecordsForView(records: QuickMemoRecord[], filters: ViewFi
       if (!haystack.includes(text)) return false;
     }
     return true;
+  });
+}
+
+/**
+ * Sort a copy of the records for display. Records that share a selectedDate are
+ * ordered by time. `desc` (the spec default) puts the newest record first.
+ */
+export function sortRecordsForDisplay(records: QuickMemoRecord[], direction: SortDirection): QuickMemoRecord[] {
+  return [...records].sort((a, b) => {
+    const cmp = `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`);
+    return direction === 'asc' ? cmp : -cmp;
   });
 }
 

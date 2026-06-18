@@ -73,4 +73,27 @@ describe('QuickMemoParser', () => {
       raw: '- not a valid record',
     });
   });
+
+  it('warns once per duplicate Quick Memo block id and keeps all records', () => {
+    const id = 'oqm-20260618-090000-dup';
+    const markdown = `## Quick Memo
+
+- 09:00 [记录] first occurrence #a ^${id}
+- 09:30 [记录] second occurrence #b ^${id}
+- 10:00 [闪念] unrelated record #c ^oqm-20260618-100000-uniq
+`;
+    const result = parser.parseFile('Daily Notes/2026-06-18.md', '2026-06-18', markdown);
+
+    expect(result.records).toHaveLength(3);
+    expect(result.records.map((record) => record.id)).toEqual([id, id, 'oqm-20260618-100000-uniq']);
+
+    const duplicateWarnings = result.warnings.filter((warning) => warning.message.includes('Duplicate Quick Memo block id'));
+    expect(duplicateWarnings).toHaveLength(1);
+    expect(duplicateWarnings[0]).toMatchObject({
+      filePath: 'Daily Notes/2026-06-18.md',
+      line: result.records[1].lineStart,
+      message: `Duplicate Quick Memo block id: ${id}`,
+      raw: result.records[1].raw,
+    });
+  });
 });

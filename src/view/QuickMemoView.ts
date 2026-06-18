@@ -4,7 +4,7 @@ import type { QuickMemoRecord, QuickMemoSettings, QuickMemoType } from '../types
 import type { IndexService } from '../index/IndexService';
 import type { MarkdownRecordRepository } from '../markdown/MarkdownRecordRepository';
 import { randomIdSuffix } from '../markdown/id';
-import { filterRecordsForView, type ViewFilters } from './viewState';
+import { filterRecordsForView, sortRecordsForDisplay, type ViewFilters } from './viewState';
 import { renderOverview } from './render';
 
 export class QuickMemoView extends ItemView {
@@ -31,17 +31,27 @@ export class QuickMemoView extends ItemView {
 
   async onOpen(): Promise<void> {
     await this.index.rebuild();
+    this.notifyWarnings();
     this.render();
   }
 
   async refresh(): Promise<void> {
     await this.index.refreshChangedFiles();
+    this.notifyWarnings();
     this.render();
+  }
+
+  private notifyWarnings(): void {
+    const n = this.index.warnings().length;
+    if (n > 0) {
+      new Notice(`Quick Memo 解析到 ${n} 条格式冲突，请检查对应 Daily Note。`);
+    }
   }
 
   private render(): void {
     const allRecords = this.index.query({});
-    const records = filterRecordsForView(allRecords, { ...this.filters, selectedDate: this.selectedDate });
+    const filtered = filterRecordsForView(allRecords, { ...this.filters, selectedDate: this.selectedDate });
+    const records = sortRecordsForDisplay(filtered, this.settings.sortDirection);
     renderOverview(this.contentEl, {
       settings: this.settings,
       records,

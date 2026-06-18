@@ -1,9 +1,10 @@
-import type { HeatmapDay, IndexQuery, QuickMemoRecord } from '../types';
+import type { HeatmapDay, IndexQuery, ParseWarning, QuickMemoRecord } from '../types';
 import type { VaultLike } from '../test/fakeVault';
 import type { QuickMemoParser } from '../markdown/QuickMemoParser';
 
 export class IndexService {
   private records: QuickMemoRecord[] = [];
+  private warningsList: ParseWarning[] = [];
   private mtimes = new Map<string, number>();
 
   constructor(
@@ -13,16 +14,20 @@ export class IndexService {
 
   async rebuild(): Promise<void> {
     const next: QuickMemoRecord[] = [];
+    const nextWarnings: ParseWarning[] = [];
     const nextMtimes = new Map<string, number>();
 
     for (const filePath of this.vault.listMarkdownFiles()) {
       const content = await this.vault.read(filePath);
       const date = dateFromPath(filePath);
-      next.push(...this.parser.parseFile(filePath, date, content).records);
+      const parsed = this.parser.parseFile(filePath, date, content);
+      next.push(...parsed.records);
+      nextWarnings.push(...parsed.warnings);
       nextMtimes.set(filePath, this.vault.stat(filePath)?.mtime ?? 0);
     }
 
     this.records = sortRecords(next, 'asc');
+    this.warningsList = nextWarnings;
     this.mtimes = nextMtimes;
   }
 
@@ -30,13 +35,21 @@ export class IndexService {
     const changed = this.vault.listMarkdownFiles().filter((filePath) => this.vault.stat(filePath)?.mtime !== this.mtimes.get(filePath));
     if (changed.length === 0) return;
 
-    const unchanged = this.records.filter((record) => !changed.includes(record.filePath));
+    const unchangedRecords = this.records.filter((record) => !changed.includes(record.filePath));
     const reparsed: QuickMemoRecord[] = [];
+    const refreshedWarnings: ParseWarning[] = this.warningsList.filter((warning) => !changed.includes(warning.filePath));
     for (const filePath of changed) {
-      reparsed.push(...this.parser.parseFile(filePath, dateFromPath(filePath), await this.vault.read(filePath)).records);
+      const parsed = this.parser.parseFile(filePath, dateFromPath(filePath), await this.vault.read(filePath));
+      reparsed.push(...parsed.records);
+      refreshedWarnings.push(...parsed.warnings);
       this.mtimes.set(filePath, this.vault.stat(filePath)?.mtime ?? 0);
     }
-    this.records = sortRecords([...unchanged, ...reparsed], 'asc');
+    this.records = sortRecords([...unchangedRecords, ...reparsed], 'asc');
+    this.warningsList = refreshedWarnings;
+  }
+
+  warnings(): ParseWarning[] {
+    return this.warningsList;
   }
 
   query(query: IndexQuery): QuickMemoRecord[] {

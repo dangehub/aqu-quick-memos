@@ -65,6 +65,21 @@ export class QuickMemoParser {
       index = next;
     }
 
+    const seenIds = new Set<string>();
+    for (const record of records) {
+      if (record.id === undefined) continue;
+      if (seenIds.has(record.id)) {
+        warnings.push({
+          filePath,
+          line: record.lineStart,
+          message: `Duplicate Quick Memo block id: ${record.id}`,
+          raw: record.raw,
+        });
+      } else {
+        seenIds.add(record.id);
+      }
+    }
+
     return { records, warnings };
   }
 

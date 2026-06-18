@@ -1,5 +1,5 @@
 import type { HeatmapDay, QuickMemoRecord, QuickMemoSettings, QuickMemoType } from '../types';
-import type { ViewFilters } from './viewState';
+import type { TodoStatusFilter, TypeFilter, ViewFilters } from './viewState';
 
 export interface OverviewState {
   settings: QuickMemoSettings;
@@ -24,6 +24,18 @@ export interface OverviewCallbacks {
   onFilterChange(filters: Partial<ViewFilters>): void;
 }
 
+/** Type filter option values, including composite todo-status filters. */
+type TypeFilterValue = TypeFilter | 'todo-done' | 'todo-open';
+
+const TYPE_FILTER_OPTIONS: ReadonlyArray<readonly [TypeFilterValue, string]> = [
+  ['all', '全部'],
+  ['record', '记录'],
+  ['flash', '闪念'],
+  ['todo', '待办'],
+  ['todo-done', '已完成待办'],
+  ['todo-open', '未完成待办'],
+];
+
 export function renderOverview(root: HTMLElement, state: OverviewState, callbacks: OverviewCallbacks): void {
   root.innerHTML = '';
   root.classList.add('oqm-root');
@@ -46,9 +58,19 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
 
   const typeSelect = appendEl(container, 'select', 'oqm-type-filter') as HTMLSelectElement;
   for (const [value, label] of TYPE_FILTER_OPTIONS) {
-    if (value) appendOption(typeSelect, label, value);
+    appendOption(typeSelect, label, value);
   }
-  typeSelect.onchange = () => callbacks.onFilterChange({ type: typeSelect.value as ViewFilters['type'] });
+  typeSelect.value = filterValueFromState(state.filters);
+  typeSelect.onchange = () => {
+    const value = typeSelect.value as TypeFilterValue;
+    if (value === 'todo-done') {
+      callbacks.onFilterChange({ type: 'todo', todoStatus: 'completed' as TodoStatusFilter });
+    } else if (value === 'todo-open') {
+      callbacks.onFilterChange({ type: 'todo', todoStatus: 'open' as TodoStatusFilter });
+    } else {
+      callbacks.onFilterChange({ type: value as TypeFilter, todoStatus: undefined });
+    }
+  };
 
   const search = appendEl(container, 'input', 'oqm-search') as HTMLInputElement;
   search.type = 'search';
@@ -159,12 +181,12 @@ const TYPE_OPTIONS: ReadonlyArray<readonly [QuickMemoType, string]> = [
   ['todo', '待办'],
 ];
 
-const TYPE_FILTER_OPTIONS: ReadonlyArray<readonly [ViewFilters['type'], string]> = [
-  ['all', '全部'],
-  ['record', '记录'],
-  ['flash', '闪念'],
-  ['todo', '待办'],
-];
+/** Map the current view filters back to a composite select value. */
+function filterValueFromState(filters: ViewFilters): TypeFilterValue {
+  if (filters.type === 'todo' && filters.todoStatus === 'completed') return 'todo-done';
+  if (filters.type === 'todo' && filters.todoStatus === 'open') return 'todo-open';
+  return filters.type ?? 'all';
+}
 
 function appendDiv(parent: HTMLElement, cls: string, text?: string): HTMLDivElement {
   const el = appendEl(parent, 'div', cls, text) as HTMLDivElement;

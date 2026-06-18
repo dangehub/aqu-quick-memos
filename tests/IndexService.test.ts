@@ -27,4 +27,16 @@ describe('IndexService', () => {
       ['#todo', 1],
     ]);
   });
+
+  it('exposes duplicate id conflicts via warnings() after rebuild', async () => {
+    const dupId = 'oqm-20260618-090000-dup';
+    const vault = new FakeVault({
+      'Daily Notes/2026-06-18.md': `## Quick Memo\n\n- 09:00 [记录] first #a ^${dupId}\n- 09:30 [记录] second #b ^${dupId}\n`,
+    });
+    const index = new IndexService(vault, new QuickMemoParser('Quick Memo'));
+    await index.rebuild();
+
+    expect(index.warnings().length).toBeGreaterThanOrEqual(1);
+    expect(index.warnings().some((warning) => warning.message.includes('Duplicate Quick Memo block id'))).toBe(true);
+  });
 });

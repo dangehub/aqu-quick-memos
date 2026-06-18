@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { QuickMemoRecord } from '../src/types';
-import { dateRangeForPreset, filterRecordsForView } from '../src/view/viewState';
+import { dateRangeForPreset, filterRecordsForView, sortRecordsForDisplay } from '../src/view/viewState';
 
 const records: QuickMemoRecord[] = [
   makeRecord('1', '2026-06-18', '09:00', 'flash', 'idea #a'),
@@ -13,9 +13,48 @@ describe('viewState', () => {
     expect(filterRecordsForView(records, { selectedDate: '2026-06-18', type: 'todo', tag: '#b', text: 'task', todoStatus: 'completed' }).map((record) => record.id)).toEqual(['2']);
   });
 
+  it('filters completed todos only when todoStatus is completed', () => {
+    const set: QuickMemoRecord[] = [
+      makeRecord('open', '2026-06-18', '08:00', 'todo', 'open todo', false),
+      makeRecord('done', '2026-06-18', '09:00', 'todo', 'done todo', true),
+      makeRecord('note', '2026-06-18', '10:00', 'record', 'plain note'),
+    ];
+    expect(filterRecordsForView(set, { type: 'todo', todoStatus: 'completed' }).map((record) => record.id)).toEqual(['done']);
+  });
+
+  it('filters open todos only when todoStatus is open', () => {
+    const set: QuickMemoRecord[] = [
+      makeRecord('open', '2026-06-18', '08:00', 'todo', 'open todo', false),
+      makeRecord('done', '2026-06-18', '09:00', 'todo', 'done todo', true),
+      makeRecord('note', '2026-06-18', '10:00', 'record', 'plain note'),
+    ];
+    expect(filterRecordsForView(set, { type: 'todo', todoStatus: 'open' }).map((record) => record.id)).toEqual(['open']);
+  });
+
   it('computes date range presets', () => {
     expect(dateRangeForPreset('today', '2026-06-18')).toEqual({ startDate: '2026-06-18', endDate: '2026-06-18' });
     expect(dateRangeForPreset('7d', '2026-06-18')).toEqual({ startDate: '2026-06-12', endDate: '2026-06-18' });
+  });
+
+  describe('sortRecordsForDisplay', () => {
+    const pair: QuickMemoRecord[] = [
+      makeRecord('nine', '2026-06-18', '09:00', 'record', 'morning'),
+      makeRecord('ten', '2026-06-18', '10:00', 'record', 'later'),
+    ];
+
+    it('returns newest first for desc (default)', () => {
+      expect(sortRecordsForDisplay(pair, 'desc').map((record) => record.id)).toEqual(['ten', 'nine']);
+    });
+
+    it('returns oldest first for asc', () => {
+      expect(sortRecordsForDisplay(pair, 'asc').map((record) => record.id)).toEqual(['nine', 'ten']);
+    });
+
+    it('does not mutate the input array', () => {
+      const copy = [...pair];
+      sortRecordsForDisplay(pair, 'desc');
+      expect(pair.map((record) => record.id)).toEqual(copy.map((record) => record.id));
+    });
   });
 });
 
