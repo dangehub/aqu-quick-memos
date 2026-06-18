@@ -44,6 +44,40 @@ describe('MarkdownRecordRepository', () => {
     expect(content).not.toContain('remove');
     expect(content).toContain('keep');
   });
+
+  it('returns the last appended record in pure-markdown mode', async () => {
+    const vault = new FakeVault({ 'Daily Notes/2026-06-18.md': '## Quick Memo\n\n- 08:00 [记录] earlier note\n' });
+    const settings = { ...DEFAULT_SETTINGS, enableBlockIds: false };
+    const repo = makeRepo(vault, settings);
+    const returned = await repo.appendRecord({ date: '2026-06-18', time: '11:30', type: 'record', content: 'appended later' }, 'a1b2');
+    expect(returned.content).toBe('appended later');
+    expect(returned.time).toBe('11:30');
+    expect(returned.id).toBeUndefined();
+  });
+
+  it('backfills missing ids and leaves already-id records unchanged', async () => {
+    const vault = new FakeVault({
+      'Daily Notes/2026-06-18.md': '## Quick Memo\n\n- 09:00 [闪念] needs id\n- 10:00 [记录] has id ^oqm-20260618-100000-z9\n',
+    });
+    const repo = makeRepo(vault);
+    const count = await repo.backfillMissingIds('2026-06-18');
+    expect(count).toBe(1);
+    const content = await vault.read('Daily Notes/2026-06-18.md');
+    expect(content).toContain('- 09:00 [闪念] needs id ^oqm-');
+    expect(content).toContain('- 10:00 [记录] has id ^oqm-20260618-100000-z9');
+  });
+
+  it('deletes a record while preserving a following section', async () => {
+    const vault = new FakeVault({
+      'Daily Notes/2026-06-18.md': '## Quick Memo\n\n- 09:00 [闪念] remove ^oqm-20260618-090000-x1\n\n## Other Section\n\nsome notes\n',
+    });
+    const repo = makeRepo(vault);
+    await repo.deleteRecord('oqm-20260618-090000-x1');
+    const content = await vault.read('Daily Notes/2026-06-18.md');
+    expect(content).not.toContain('remove');
+    expect(content).toContain('## Other Section');
+    expect(content).toContain('some notes');
+  });
 });
 
 function makeRepo(vault: FakeVault, settings = DEFAULT_SETTINGS): MarkdownRecordRepository {

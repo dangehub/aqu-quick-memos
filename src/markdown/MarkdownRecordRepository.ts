@@ -20,7 +20,11 @@ export class MarkdownRecordRepository {
     const updated = insertIntoSection(content, this.settings.quickMemoHeading, serialized);
     await this.vault.modify(filePath, updated);
     const parsed = this.parser.parseFile(filePath, draft.date, updated).records;
-    return parsed.find((record) => record.id === id) ?? parsed[parsed.length - 1];
+    if (id) {
+      const matched = parsed.find((record) => record.id === id);
+      if (matched) return matched;
+    }
+    return parsed[parsed.length - 1];
   }
 
   async readRecords(date: string): Promise<QuickMemoRecord[]> {
@@ -93,12 +97,13 @@ export class MarkdownRecordRepository {
 }
 
 function insertIntoSection(markdown: string, heading: string, serialized: string): string {
-  const lines = markdown.split('\n');
+  const normalized = markdown.replace(/\n+$/u, '');
+  const lines = normalized.split('\n');
   const headingPattern = new RegExp(`^##\\s+${escapeRegExp(heading)}\\s*$`, 'u');
   const headingIndex = lines.findIndex((line) => headingPattern.test(line));
+
   if (headingIndex === -1) {
-    const separator = markdown.endsWith('\n') ? '' : '\n';
-    return `${markdown}${separator}\n## ${heading}\n\n${serialized}\n`;
+    return `${normalized}\n\n## ${heading}\n\n${serialized}\n`;
   }
 
   let insertAt = lines.length;
@@ -109,11 +114,16 @@ function insertIntoSection(markdown: string, heading: string, serialized: string
     }
   }
 
-  const before = lines.slice(0, insertAt);
+  const sectionLines = lines.slice(headingIndex + 1, insertAt);
+  const nonBlankSection = sectionLines.filter((line) => line.trim() !== '');
+  const before = lines.slice(0, headingIndex + 1);
   const after = lines.slice(insertAt);
-  if (before[before.length - 1]?.trim()) before.push('');
-  before.push(serialized);
-  return [...before, ...after].join('\n');
+
+  const section = nonBlankSection.length > 0
+    ? ['', ...nonBlankSection, '', serialized, '']
+    : ['', serialized, ''];
+
+  return [...before, ...section, ...after].join('\n');
 }
 
 function dateFromPath(path: string): string {
