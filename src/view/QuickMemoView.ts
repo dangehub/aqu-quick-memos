@@ -36,14 +36,9 @@ export class QuickMemoView extends ItemView {
   }
 
   async onOpen(): Promise<void> {
-    try {
-      this.currentDay = today();
-      await this.index.rebuild();
-      this.notifyWarnings();
-      this.render();
-    } catch (error) {
-      this.showFatalError(error);
-    }
+    this.currentDay = today();
+    this.render();
+    void this.rebuildIndexInBackground();
     // Check once a minute for a local-day rollover while the view stays open.
     this.dayWatcher = window.setInterval(() => this.checkDayRollover(), 60_000);
     // Close an open record menu on the next tap/click anywhere outside it.
@@ -77,6 +72,16 @@ export class QuickMemoView extends ItemView {
   async refresh(): Promise<void> {
     try {
       await this.index.refreshChangedFiles();
+      this.notifyWarnings();
+      this.render();
+    } catch (error) {
+      this.showFatalError(error);
+    }
+  }
+
+  private async rebuildIndexInBackground(): Promise<void> {
+    try {
+      await this.index.rebuild();
       this.notifyWarnings();
       this.render();
     } catch (error) {

@@ -1,7 +1,7 @@
 import type { HeatmapDay, IndexQuery, ParseWarning, QuickMemoRecord } from '../types';
 import type { VaultLike } from '../test/fakeVault';
 import type { QuickMemoParser } from '../markdown/QuickMemoParser';
-import { dateFromPath } from '../daily-notes/path';
+import { dateFromPath, isQuickMemoPath } from '../daily-notes/path';
 
 export class IndexService {
   private records: QuickMemoRecord[] = [];
@@ -18,7 +18,7 @@ export class IndexService {
     const nextWarnings: ParseWarning[] = [];
     const nextMtimes = new Map<string, number>();
 
-    for (const filePath of this.vault.listMarkdownFiles()) {
+    for (const filePath of this.indexableMarkdownFiles()) {
       const content = await this.vault.read(filePath);
       const date = dateFromPath(filePath);
       const parsed = this.parser.parseFile(filePath, date, content);
@@ -33,7 +33,7 @@ export class IndexService {
   }
 
   async refreshChangedFiles(): Promise<void> {
-    const changed = this.vault.listMarkdownFiles().filter((filePath) => this.vault.stat(filePath)?.mtime !== this.mtimes.get(filePath));
+    const changed = this.indexableMarkdownFiles().filter((filePath) => this.vault.stat(filePath)?.mtime !== this.mtimes.get(filePath));
     if (changed.length === 0) return;
 
     const unchangedRecords = this.records.filter((record) => !changed.includes(record.filePath));
@@ -83,6 +83,10 @@ export class IndexService {
       for (const tag of record.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
     }
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }
+
+  private indexableMarkdownFiles(): string[] {
+    return this.vault.listMarkdownFiles().filter(isQuickMemoPath);
   }
 }
 

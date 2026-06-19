@@ -3,7 +3,7 @@ import type { VaultLike } from '../test/fakeVault';
 import type { DailyNoteResolver } from '../daily-notes/DailyNoteResolver';
 import type { QuickMemoParser } from './QuickMemoParser';
 import { createBlockId } from './id';
-import { dateFromPath } from '../daily-notes/path';
+import { dateFromPath, isQuickMemoPath } from '../daily-notes/path';
 
 export class MarkdownRecordRepository {
   constructor(
@@ -65,7 +65,7 @@ export class MarkdownRecordRepository {
    *  afterwards also drops any stale records left over from deleted files. */
   async removeTag(tag: string): Promise<number> {
     let count = 0;
-    for (const filePath of this.vault.listMarkdownFiles()) {
+    for (const filePath of this.quickMemoFiles()) {
       let content = await this.vault.read(filePath);
       const date = dateFromPath(filePath);
       const records = this.parser.parseFile(filePath, date, content).records.filter((record) => record.tags.includes(tag));
@@ -106,7 +106,7 @@ export class MarkdownRecordRepository {
   }
 
   private async locateById(id: string): Promise<{ filePath: string; record: QuickMemoRecord }> {
-    for (const filePath of this.vault.listMarkdownFiles()) {
+    for (const filePath of this.quickMemoFiles()) {
       const date = dateFromPath(filePath);
       const content = await this.vault.read(filePath);
       const record = this.parser.parseFile(filePath, date, content).records.find((candidate) => candidate.id === id);
@@ -118,6 +118,10 @@ export class MarkdownRecordRepository {
   private async replaceLines(filePath: string, lineStart: number, lineEnd: number, replacement: string): Promise<void> {
     const content = await this.vault.read(filePath);
     await this.vault.modify(filePath, replaceRange(content, lineStart, lineEnd, replacement));
+  }
+
+  private quickMemoFiles(): string[] {
+    return this.vault.listMarkdownFiles().filter(isQuickMemoPath);
   }
 }
 

@@ -70,12 +70,11 @@ describe('DailyNoteResolver', () => {
     expect(result.source).toBe('daily-notes');
   });
 
-  it('still reads a plain yyyy-MM-dd.md date (legacy files keep parsing)', async () => {
+  it('always resolves to a -quick-memos file, never a plain yyyy-MM-dd.md daily note', async () => {
     const vault = new FakeVault();
     const resolver = new DailyNoteResolver(vault, undefined, OWN);
     const result = await resolver.resolve('2026-06-19');
-    // The resolver always writes to the suffixed file, but the path parser in
-    // src/daily-notes/path.ts accepts both — covered indirectly by the index tests.
     expect(result.filePath).toContain('2026-06-19-quick-memos.md');
+    expect(result.filePath).not.toContain('2026-06-19.md');
   });
 });

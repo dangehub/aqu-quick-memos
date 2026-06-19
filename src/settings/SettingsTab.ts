@@ -78,7 +78,7 @@ export class QuickMemoSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('日期格式')
-      .setDesc('支持 YYYY、MM、DD。例如 YYYY/MM/YYYY-MM-DD 会生成 2026/06/2026-06-19.md。')
+      .setDesc('支持 YYYY、MM、DD。例如 YYYY/MM/YYYY-MM-DD 会生成 2026/06/2026-06-19-quick-memos.md。')
       .addText((text) => text
         .setValue(this.plugin.settings.fallbackDateFormat)
         .onChange(async (value) => {
