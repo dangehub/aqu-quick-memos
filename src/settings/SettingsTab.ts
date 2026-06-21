@@ -14,7 +14,6 @@ export class QuickMemoSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    new Setting(containerEl).setName('Quick Memo 设置').setHeading();
 
     new Setting(containerEl)
       .setName('用户名称')
