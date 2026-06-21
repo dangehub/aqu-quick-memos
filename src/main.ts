@@ -112,18 +112,21 @@ export default class QuickMemoPlugin extends Plugin {
   async onunload(): Promise<void> {
     if (this.refreshTimer !== undefined) window.clearTimeout(this.refreshTimer);
     if (this.rebuildTimer !== undefined) window.clearTimeout(this.rebuildTimer);
-    this.app.workspace.detachLeavesOfType(VIEW_TYPE_QUICK_MEMO);
   }
 
   async activateView(): Promise<void> {
     const { workspace } = this.app;
-    // Force a fresh right-sidebar view to recover from any stale/blank leaves that
-    // may have been persisted while experimenting with central editor tabs.
-    workspace.detachLeavesOfType(VIEW_TYPE_QUICK_MEMO);
+    // Reuse an existing Quick Memo leaf if one is open, so we don't reset a leaf
+    // the user may have moved. Only create a new right-sidebar leaf when none exists.
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_QUICK_MEMO)[0];
+    if (existing) {
+      await workspace.revealLeaf(existing);
+      return;
+    }
     const leaf = workspace.getRightLeaf(false);
     if (!leaf) throw new Error('Unable to create Quick Memo view leaf.');
     await leaf.setViewState({ type: VIEW_TYPE_QUICK_MEMO, active: true });
-    workspace.revealLeaf(leaf);
+    await workspace.revealLeaf(leaf);
   }
 
   async loadSettings(): Promise<void> {
