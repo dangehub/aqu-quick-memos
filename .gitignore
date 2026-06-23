@@ -14,3 +14,6 @@ __pycache__/
 *.zip
 obsidian-quick-memo/
 
+# Generated README exports
+*.html
+
