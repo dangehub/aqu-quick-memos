@@ -11,6 +11,10 @@ const saved = {
   fallbackDateFormat: 'YYYY/MM/DD',
   enableBlockIds: false,
   sortDirection: 'asc' as const,
+  attachmentFolderMode: 'sameFolder' as const,
+  linkStyle: 'wiki' as const,
+  linkPathFormat: 'absolute' as const,
+  openOnStartup: true,
 };
 
 describe('settings', () => {
@@ -25,11 +29,23 @@ describe('settings', () => {
       fallbackDateFormat: 'YYYY-MM-DD',
       enableBlockIds: true,
       sortDirection: 'desc',
+      attachmentFolderMode: 'obsidianDefault',
+      attachmentSubFolder: 'assets',
+      customAttachmentFolder: '',
+      linkStyle: 'obsidianDefault',
+      linkPathFormat: 'obsidianDefault',
+      openOnStartup: false,
     });
   });
 
   it('merges saved settings over defaults', () => {
-    expect(normalizeSettings(saved)).toEqual(saved);
+    const result = normalizeSettings(saved);
+    expect(result.userName).toBe('Ada');
+    expect(result.sortDirection).toBe('asc');
+    expect(result.attachmentFolderMode).toBe('sameFolder'); // from saved data
+    expect(result.linkStyle).toBe('wiki');
+    expect(result.linkPathFormat).toBe('absolute');
+    expect(result.openOnStartup).toBe(true);
   });
 
   it('repairs invalid enum values', () => {

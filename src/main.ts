@@ -63,7 +63,7 @@ export default class QuickMemoPlugin extends Plugin {
     const repository = new MarkdownRecordRepository(vault, resolver, parser, this.settings);
     this.index = new IndexService(vault, parser);
 
-    this.registerView(VIEW_TYPE_QUICK_MEMO, (leaf) => new QuickMemoView(leaf, this.settings, repository, this.index));
+    this.registerView(VIEW_TYPE_QUICK_MEMO, (leaf) => new QuickMemoView(leaf, this.settings, repository, this.index, resolver));
 
     this.addRibbonIcon('notebook-pen', 'Open Quick Memo', () => {
       void this.activateView();
@@ -108,6 +108,13 @@ export default class QuickMemoPlugin extends Plugin {
     }));
 
     this.addSettingTab(new QuickMemoSettingTab(this.app, this));
+
+    // Optionally auto-open in the main content area on plugin load.
+    if (this.settings.openOnStartup) {
+      this.app.workspace.onLayoutReady(() => {
+        void this.activateView();
+      });
+    }
   }
 
   onunload(): void {
@@ -118,14 +125,14 @@ export default class QuickMemoPlugin extends Plugin {
   async activateView(): Promise<void> {
     const { workspace } = this.app;
     // Reuse an existing Quick Memo leaf if one is open, so we don't reset a leaf
-    // the user may have moved. Only create a new right-sidebar leaf when none exists.
+    // the user may have moved.
     const existing = workspace.getLeavesOfType(VIEW_TYPE_QUICK_MEMO)[0];
     if (existing) {
       await workspace.revealLeaf(existing);
       return;
     }
-    const leaf = workspace.getRightLeaf(false);
-    if (!leaf) throw new Error('Unable to create Quick Memo view leaf.');
+    // Open in the main content area (tab), not the right sidebar.
+    const leaf = workspace.getLeaf(true);
     await leaf.setViewState({ type: VIEW_TYPE_QUICK_MEMO, active: true });
     await workspace.revealLeaf(leaf);
   }

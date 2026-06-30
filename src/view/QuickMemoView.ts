@@ -3,6 +3,7 @@ import { VIEW_TYPE_QUICK_MEMO } from '../constants';
 import type { QuickMemoRecord, QuickMemoSettings, QuickMemoType } from '../types';
 import type { IndexService } from '../index/IndexService';
 import type { MarkdownRecordRepository } from '../markdown/MarkdownRecordRepository';
+import type { DailyNoteResolver } from '../daily-notes/DailyNoteResolver';
 import { randomIdSuffix } from '../markdown/id';
 import { filterRecordsForView, rollSelectedDate, sortRecordsForDisplay, type ViewFilters } from './viewState';
 import { renderOverview, recordKey } from './render';
@@ -14,6 +15,9 @@ export class QuickMemoView extends ItemView {
   private editingRecordId: string | undefined;
   private openMenuRecordId: string | undefined;
   private dayWatcher: number | undefined;
+  /** Directory of the currently selected date's memo file — set during render,
+   *  used by formatAttachmentLink for relative-path computation. */
+  private currentMemoDir = '';
   /** Child components created by MarkdownRenderer during a render; unloaded on
    *  the next full re-render so the live markdown rendering doesn't leak. */
   private renderChildren: Component[] = [];
@@ -23,6 +27,7 @@ export class QuickMemoView extends ItemView {
     private readonly settings: QuickMemoSettings,
     private readonly repository: MarkdownRecordRepository,
     private readonly index: IndexService,
+    private readonly resolver: DailyNoteResolver,
   ) {
     super(leaf);
   }
@@ -127,6 +132,12 @@ export class QuickMemoView extends ItemView {
     }
     this.renderChildren = [];
 
+    // Cache the memo file directory for link formatting (used by paste handler).
+    void this.resolver.resolve(this.selectedDate).then((r) => {
+      const lastSlash = r.filePath.lastIndexOf('/');
+      this.currentMemoDir = lastSlash >= 0 ? r.filePath.substring(0, lastSlash) : '';
+    });
+
     // Snapshot the focused text field so the full re-render can restore its focus
     // and caret — otherwise rebuilding the DOM on each search keystroke drops it.
     const restoreFocus = captureFocusRestore(this.contentEl);
@@ -217,6 +228,154 @@ export class QuickMemoView extends ItemView {
         menu?.scrollIntoView({ block: 'nearest' });
       });
     }
+
+    // Attach paste handler for image attachments
+    const input = this.contentEl.querySelector<HTMLTextAreaElement>('.oqm-input');
+    if (input) input.addEventListener('paste', this.handlePaste);
+  }
+
+  private handlePaste = async (event: ClipboardEvent): Promise<void> => {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        event.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+        try {
+          const fullPath = await this.saveAttachment(file);
+          const link = this.formatAttachmentLink(fullPath);
+          const textarea = event.target as HTMLTextAreaElement;
+          this.insertAtCursor(textarea, link);
+        } catch (err) {
+          new Notice('附件保存失败');
+          console.error('Quick Memo attachment save failed:', err);
+        }
+      }
+    }
+  };
+
+  private async saveAttachment(file: File): Promise<string> {
+    const resolution = await this.resolver.resolve(this.selectedDate);
+    const dir = this.getAttachmentDir(resolution.filePath);
+    const adapter = this.app.vault.adapter;
+
+    if (dir && !(await adapter.exists(dir))) {
+      await adapter.mkdir(dir);
+    }
+
+    const ext = file.name.split('.').pop() ?? 'png';
+    const filename = `memo-${Date.now()}.${ext}`;
+    const fullPath = dir ? `${dir}/${filename}` : filename;
+
+    const arrayBuf = await file.arrayBuffer();
+    await adapter.writeBinary(fullPath, arrayBuf);
+
+    return fullPath;
+  }
+
+  private getAttachmentDir(memoFilePath: string): string {
+    const { settings } = this;
+    const parentDir = memoFilePath.substring(0, memoFilePath.lastIndexOf('/'));
+
+    switch (settings.attachmentFolderMode) {
+      case 'obsidianDefault': return this.getObsidianAttachmentDir(memoFilePath);
+      case 'root': return '';
+      case 'sameFolder': return parentDir;
+      case 'subFolder': return `${parentDir}/${settings.attachmentSubFolder}`;
+      case 'customFolder': return settings.customAttachmentFolder;
+    }
+  }
+
+  /** Follow Obsidian's global Files & Links → Attachment folder path setting. */
+  private getObsidianAttachmentDir(memoFilePath: string): string {
+    // getConfig is a runtime method on Vault but not in the public type declarations.
+    const configPath = (this.app.vault as unknown as { getConfig(key: string): string }).getConfig('attachmentFolderPath');
+    // Obsidian config values: './' = same folder; './foo' = subfolder; 'foo/' = vault-root folder
+    if (!configPath || configPath === './' || configPath === '.') {
+      // Same folder as the memo file
+      return memoFilePath.substring(0, memoFilePath.lastIndexOf('/'));
+    }
+    if (configPath.startsWith('./')) {
+      // Subfolder relative to the memo file
+      const subFolder = configPath.slice(2);
+      const parentDir = memoFilePath.substring(0, memoFilePath.lastIndexOf('/'));
+      return parentDir ? `${parentDir}/${subFolder}` : subFolder;
+    }
+    // Vault-root-relative folder (strip trailing slash if any)
+    return configPath.replace(/\/$/u, '');
+  }
+
+  /** Format an attachment's vault path as a wiki `![[...]]` or markdown `![](...)` link
+   *  according to the plugin's link settings (or Obsidian's global settings). */
+  private formatAttachmentLink(fullPath: string): string {
+    const style = this.resolveLinkStyle();
+    const displayPath = this.formatLinkPath(fullPath);
+    if (style === 'markdown') {
+      const name = fullPath.split('/').pop() ?? fullPath;
+      return `![${name}](${displayPath})`;
+    }
+    // wiki — Obsidian translates embedded wiki images with `!` prefix
+    return `![[${displayPath}]]`;
+  }
+
+  /** Resolve link style (wiki vs markdown) from plugin or Obsidian global settings. */
+  private resolveLinkStyle(): 'wiki' | 'markdown' {
+    const { settings } = this;
+    if (settings.linkStyle === 'obsidianDefault') {
+      const useMarkdown = (this.app.vault as unknown as { getConfig(k: string): unknown }).getConfig('useMarkdownLinks');
+      return useMarkdown ? 'markdown' : 'wiki';
+    }
+    return settings.linkStyle;
+  }
+
+  /** Format the display path for a link according to path format settings. */
+  private formatLinkPath(fullPath: string): string {
+    const format = this.resolveLinkPathFormat();
+    const memoDir = this.getMemoFileDir();
+    switch (format) {
+      case 'shortest':
+        return fullPath.split('/').pop() ?? fullPath;
+      case 'relative': {
+        if (!memoDir) return fullPath;
+        const fromParts = memoDir.split('/').filter(Boolean);
+        const toParts = fullPath.split('/').filter(Boolean);
+        // Remove common prefix
+        let i = 0;
+        while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) i++;
+        const up = fromParts.length - i;
+        const rel = [...Array(up).fill('..'), ...toParts.slice(i)];
+        return rel.join('/');
+      }
+      case 'absolute':
+      default:
+        return fullPath;
+    }
+  }
+
+  /** Resolve path format (shortest/relative/absolute) from plugin or Obsidian global settings. */
+  private resolveLinkPathFormat(): 'shortest' | 'relative' | 'absolute' {
+    const { settings } = this;
+    if (settings.linkPathFormat === 'obsidianDefault') {
+      const format = (this.app.vault as unknown as { getConfig(k: string): unknown }).getConfig('newLinkFormat') as string;
+      if (format === 'relative') return 'relative';
+      if (format === 'absolute') return 'absolute';
+      return 'shortest';
+    }
+    return settings.linkPathFormat;
+  }
+
+  /** Get the directory of the currently selected memo file for relative path computation. */
+  private getMemoFileDir(): string {
+    return this.currentMemoDir;
+  }
+
+  private insertAtCursor(textarea: HTMLTextAreaElement, text: string): void {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(end);
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    textarea.focus();
   }
 
   private async deleteTag(tag: string): Promise<void> {

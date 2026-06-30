@@ -10,6 +10,12 @@ export const DEFAULT_SETTINGS: QuickMemoSettings = {
   fallbackDateFormat: 'YYYY-MM-DD',
   enableBlockIds: true,
   sortDirection: 'desc',
+  attachmentFolderMode: 'obsidianDefault',
+  attachmentSubFolder: 'assets',
+  customAttachmentFolder: '',
+  linkStyle: 'obsidianDefault',
+  linkPathFormat: 'obsidianDefault',
+  openOnStartup: false,
 };
 
 const VALID_SORTS: SortDirection[] = ['asc', 'desc'];

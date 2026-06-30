@@ -2,6 +2,9 @@ export type QuickMemoType = 'memo' | 'todo';
 export type InputMode = 'memo' | 'todo';
 export type SortDirection = 'asc' | 'desc';
 export type DateRangePreset = 'today' | '7d' | '30d' | 'custom';
+export type AttachmentFolderMode = 'obsidianDefault' | 'root' | 'sameFolder' | 'subFolder' | 'customFolder';
+export type LinkStyle = 'obsidianDefault' | 'wiki' | 'markdown';
+export type LinkPathFormat = 'obsidianDefault' | 'shortest' | 'relative' | 'absolute';
 
 export interface QuickMemoSettings {
   userName: string;
@@ -15,6 +18,18 @@ export interface QuickMemoSettings {
   fallbackDateFormat: string;
   enableBlockIds: boolean;
   sortDirection: SortDirection;
+  /** Where to save pasted/dropped images. */
+  attachmentFolderMode: AttachmentFolderMode;
+  /** Subfolder name when mode is 'subFolder'. */
+  attachmentSubFolder: string;
+  /** Custom absolute or vault-relative path when mode is 'customFolder'. */
+  customAttachmentFolder: string;
+  /** Link syntax for images/attachments: wiki (`![[...]]`) or markdown (`![](...)`). */
+  linkStyle: LinkStyle;
+  /** Path format inside links: shortest filename, relative from note, or absolute from vault. */
+  linkPathFormat: LinkPathFormat;
+  /** Auto-open the Quick Memo overview when the plugin loads. */
+  openOnStartup: boolean;
 }
 
 export interface RecordDraft {

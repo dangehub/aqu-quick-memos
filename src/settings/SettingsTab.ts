@@ -1,5 +1,5 @@
 import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import type { QuickMemoSettings, SortDirection } from '../types';
+import type { AttachmentFolderMode, LinkPathFormat, LinkStyle, QuickMemoSettings, SortDirection } from '../types';
 
 interface QuickMemoSettingsHost extends Plugin {
   settings: QuickMemoSettings;
@@ -103,6 +103,90 @@ export class QuickMemoSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.sortDirection)
         .onChange(async (value) => {
           this.plugin.settings.sortDirection = value as SortDirection;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName('附件默认存放路径')
+      .setDesc('设置新添加附件的存放位置。「遵循 Obsidian 设置」会使用 Obsidian 本体「文件与链接」中的附件路径配置。')
+      .addDropdown((dropdown) => dropdown
+        .addOption('obsidianDefault', '遵循 Obsidian 设置（默认）')
+        .addOption('root', '仓库的根目录')
+        .addOption('sameFolder', '当前文件所在的文件夹')
+        .addOption('subFolder', '当前文件所在文件夹下指定的子文件夹')
+        .addOption('customFolder', '指定的附件文件夹')
+        .setValue(this.plugin.settings.attachmentFolderMode)
+        .onChange(async (value) => {
+          this.plugin.settings.attachmentFolderMode = value as AttachmentFolderMode;
+          await this.plugin.saveSettings();
+          // Re-render to show/hide conditional inputs
+          this.display();
+        }));
+
+    if (this.plugin.settings.attachmentFolderMode === 'subFolder') {
+      new Setting(containerEl)
+        .setName('子文件夹名称')
+        .setDesc('附件将存放于日记文件所在目录下的这个子文件夹中。')
+        .addText((text) => text
+          .setValue(this.plugin.settings.attachmentSubFolder)
+          .setPlaceholder('assets')
+          .onChange(async (value) => {
+            this.plugin.settings.attachmentSubFolder = value.trim();
+            await this.plugin.saveSettings();
+          }));
+    }
+
+    if (this.plugin.settings.attachmentFolderMode === 'customFolder') {
+      new Setting(containerEl)
+        .setName('自定义附件路径')
+        .setDesc('附件的存放路径，相对于 vault 根目录。')
+        .addText((text) => text
+          .setValue(this.plugin.settings.customAttachmentFolder)
+          .setPlaceholder('attachments/memos')
+          .onChange(async (value) => {
+            this.plugin.settings.customAttachmentFolder = value.trim();
+            await this.plugin.saveSettings();
+          }));
+    }
+
+    // ── Link settings ──
+
+    new Setting(containerEl)
+      .setName('链接语法')
+      .setDesc('插入附件时使用的链接格式。「遵循 Obsidian 设置」会读取本体「文件与链接 → 使用 Wiki 链接」选项。')
+      .addDropdown((dropdown) => dropdown
+        .addOption('obsidianDefault', '遵循 Obsidian 设置（默认）')
+        .addOption('wiki', 'Wiki 链接（![[...]]）')
+        .addOption('markdown', 'Markdown 链接（![](...)）')
+        .setValue(this.plugin.settings.linkStyle)
+        .onChange(async (value) => {
+          this.plugin.settings.linkStyle = value as LinkStyle;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName('链接路径格式')
+      .setDesc('链接中使用的文件路径格式。「遵循 Obsidian 设置」会读取本体「文件与链接 → 内部链接类型」选项。')
+      .addDropdown((dropdown) => dropdown
+        .addOption('obsidianDefault', '遵循 Obsidian 设置（默认）')
+        .addOption('shortest', '尽可能简短（仅文件名）')
+        .addOption('relative', '相对于当前笔记的路径')
+        .addOption('absolute', '基于仓库根目录的绝对路径')
+        .setValue(this.plugin.settings.linkPathFormat)
+        .onChange(async (value) => {
+          this.plugin.settings.linkPathFormat = value as LinkPathFormat;
+          await this.plugin.saveSettings();
+        }));
+
+    // ── Startup ──
+
+    new Setting(containerEl)
+      .setName('启动时打开 Quick Memo')
+      .setDesc('开启后，每次启动 Obsidian 或重新加载插件时，自动在标签页中打开 Quick Memo 总览。')
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.openOnStartup)
+        .onChange(async (value) => {
+          this.plugin.settings.openOnStartup = value;
           await this.plugin.saveSettings();
         }));
   }
