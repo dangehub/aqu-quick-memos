@@ -18,8 +18,7 @@ export interface OverviewStats {
   days: number;
   /** Total record count across all dates. */
   total: number;
-  flash: number;
-  record: number;
+  memo: number;
   todo: number;
   /** Completed todos (subset of `todo`). */
   todoDone: number;
@@ -34,6 +33,7 @@ export interface OverviewState {
   todayDate: string;
   editingRecordId?: string;
   openMenuRecordId?: string;
+  inputMode?: 'memo' | 'todo';
   filters: ViewFilters;
   stats: OverviewStats;
   markdown?: MarkdownApi;
@@ -59,8 +59,7 @@ type TypeFilterValue = TypeFilter | 'todo-done' | 'todo-open';
 
 const TYPE_FILTER_OPTIONS: ReadonlyArray<readonly [TypeFilterValue, string]> = [
   ['all', '全部'],
-  ['record', '记录'],
-  ['flash', '闪念'],
+  ['memo', '普通'],
   ['todo', '待办'],
   ['todo-done', '已完成待办'],
   ['todo-open', '未完成待办'],
@@ -156,7 +155,7 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
   for (const [value, label] of TYPE_OPTIONS) {
     appendOption(type, label, value);
   }
-  type.value = state.settings.defaultRecordType;
+  type.value = state.inputMode ?? 'memo';
   appendDiv(row, 'oqm-composer-date', state.selectedDate);
 
   // Plain markdown source editor. (The cards below render the markdown; the
@@ -314,10 +313,9 @@ function renderStats(container: HTMLElement, stats: OverviewStats): void {
   const block = appendDiv(container, 'oqm-stats');
   const ratioPct = stats.todo > 0 ? Math.round((stats.todoDone / stats.todo) * 1000) / 10 : 0;
 
-  // Top row: the three record types (flash / record / todo).
+  // Top row: the two record types (memo / todo).
   const typesRow = appendDiv(block, 'oqm-stats-row oqm-stats-types');
-  addStatCard(typesRow, String(stats.flash), '闪念');
-  addStatCard(typesRow, String(stats.record), '记录');
+  addStatCard(typesRow, String(stats.memo), '普通');
   addStatCard(typesRow, String(stats.todo), '待办');
 
   // Bottom row: usage breadth — days used and total records, each filling half.
@@ -385,12 +383,11 @@ function pad2(value: number): string {
 }
 
 function typeLabel(type: QuickMemoType): string {
-  return type === 'record' ? '记录' : type === 'flash' ? '闪念' : '待办';
+  return type === 'memo' ? '普通' : '待办';
 }
 
 const TYPE_OPTIONS: ReadonlyArray<readonly [QuickMemoType, string]> = [
-  ['record', '记录'],
-  ['flash', '闪念'],
+  ['memo', '普通'],
   ['todo', '待办'],
 ];
 

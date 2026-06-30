@@ -5,12 +5,11 @@ const saved = {
   userName: 'Ada',
   userSlogan: 'Capture ideas fast',
   avatar: 'avatar.png',
-  quickMemoHeading: 'Memos',
+  quickMemoHeading: '### memos',
   overrideDailyNotesConfig: false,
   fallbackDailyNotesFolder: 'Journal',
   fallbackDateFormat: 'YYYY/MM/DD',
   enableBlockIds: false,
-  defaultRecordType: 'flash' as const,
   sortDirection: 'asc' as const,
 };
 
@@ -20,12 +19,11 @@ describe('settings', () => {
       userName: 'Quick Memo',
       userSlogan: 'Capture the moment.',
       avatar: '',
-      quickMemoHeading: 'Quick Memo',
+      quickMemoHeading: '### memos',
       overrideDailyNotesConfig: true,
-      fallbackDailyNotesFolder: '每日工作',
-      fallbackDateFormat: 'YYYY/MM/YYYY-MM-DD',
+      fallbackDailyNotesFolder: '',
+      fallbackDateFormat: 'YYYY-MM-DD',
       enableBlockIds: true,
-      defaultRecordType: 'flash',
       sortDirection: 'desc',
     });
   });
@@ -35,8 +33,7 @@ describe('settings', () => {
   });
 
   it('repairs invalid enum values', () => {
-    const normalized = normalizeSettings({ defaultRecordType: 'idea', sortDirection: 'newest' });
-    expect(normalized.defaultRecordType).toBe('flash');
+    const normalized = normalizeSettings({ sortDirection: 'newest' });
     expect(normalized.sortDirection).toBe('desc');
   });
 });

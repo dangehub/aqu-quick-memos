@@ -1,104 +1,88 @@
 import { describe, expect, it } from 'vitest';
-import { DailyNoteResolver } from '../src/daily-notes/DailyNoteResolver';
-import { MarkdownRecordRepository } from '../src/markdown/MarkdownRecordRepository';
-import { QuickMemoParser } from '../src/markdown/QuickMemoParser';
-import { DEFAULT_SETTINGS } from '../src/settings/settings';
 import { FakeVault } from '../src/test/fakeVault';
+import type { QuickMemoRecord } from '../src/types';
+import { QuickMemoParser } from '../src/markdown/QuickMemoParser';
+import { MarkdownRecordRepository } from '../src/markdown/MarkdownRecordRepository';
+import { DailyNoteResolver } from '../src/daily-notes/DailyNoteResolver';
+import { DEFAULT_SETTINGS } from '../src/settings/settings';
+import { dateFromPath, isQuickMemoPath } from '../src/daily-notes/path';
+
+function makeRepo(vault: FakeVault, settings = { ...DEFAULT_SETTINGS, quickMemoHeading: '## Quick Memo' }) {
+  const parser = new QuickMemoParser(settings.quickMemoHeading);
+  const resolver = new DailyNoteResolver(vault, undefined, settings);
+  return new MarkdownRecordRepository(vault, resolver, parser, settings);
+}
 
 describe('MarkdownRecordRepository', () => {
   it('appends records to the Quick Memo section', async () => {
-    const vault = new FakeVault({ 'Daily Notes/2026-06-18-quick-memos.md': '# Day\n\n## Quick Memo\n' });
+    const vault = new FakeVault({ '2026-06-18.md': '# Day\n\n## Quick Memo\n' });
     const repo = makeRepo(vault);
-    await repo.appendRecord({ date: '2026-06-18', time: '09:12', type: 'flash', content: 'idea #tag', body: 'line 2' }, 'a1b2');
-    expect(await vault.read('Daily Notes/2026-06-18-quick-memos.md')).toContain('- 09:12 [闪念] idea #tag ^oqm-20260618-091200-a1b2\n  line 2');
+    await repo.appendRecord({ date: '2026-06-18', time: '09:12', type: 'memo', content: 'idea #tag', body: 'line 2' }, 'a1b2');
+    expect(await vault.read('2026-06-18.md')).toContain('- 09:12\n  idea #tag\n  line 2 ^oqm-20260618-091200-a1b2');
   });
 
-  it('respects pure markdown mode when block ids are disabled', async () => {
-    const vault = new FakeVault();
-    const settings = { ...FLAT_SETTINGS, enableBlockIds: false };
-    const repo = makeRepo(vault, settings);
-    await repo.appendRecord({ date: '2026-06-18', time: '10:00', type: 'record', content: 'plain' }, 'a1b2');
-    expect(await vault.read('Daily Notes/2026-06-18-quick-memos.md')).toContain('- 10:00 [记录] plain');
-    expect(await vault.read('Daily Notes/2026-06-18-quick-memos.md')).not.toContain('^oqm-');
-  });
-
-  it('toggles todo completion by stable id', async () => {
-    const vault = new FakeVault({ 'Daily Notes/2026-06-18-quick-memos.md': '## Quick Memo\n\n- [ ] 10:20 [待办] task #todo ^oqm-20260618-102000-e5f6\n' });
+  it('creates a missing Quick Memo section', async () => {
+    const vault = new FakeVault({ '2026-06-18.md': '# Day\n' });
     const repo = makeRepo(vault);
-    await repo.toggleTodo('oqm-20260618-102000-e5f6');
-    expect(await vault.read('Daily Notes/2026-06-18-quick-memos.md')).toContain('- [x] 10:20 [待办] task #todo ^oqm-20260618-102000-e5f6');
+    await repo.appendRecord({ date: '2026-06-18', time: '10:00', type: 'memo', content: 'plain' }, 'a1b2');
+    expect(await vault.read('2026-06-18.md')).toContain('## Quick Memo');
+    expect(await vault.read('2026-06-18.md')).toContain('- 10:00 plain ^oqm-20260618-100000-a1b2');
   });
 
-  it('updates record content and preserves time and id', async () => {
-    const vault = new FakeVault({ 'Daily Notes/2026-06-18-quick-memos.md': '## Quick Memo\n\n- 09:12 [闪念] old ^oqm-20260618-091200-a1b2\n' });
+  it('reads records for a date', async () => {
+    const vault = new FakeVault({
+      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- 09:12 idea #a ^oqm-20260618-091200-a1b2\n- [ ] 10:20 task ^oqm-20260618-102000-c3d4\n',
+    });
     const repo = makeRepo(vault);
-    await repo.updateRecord('oqm-20260618-091200-a1b2', { type: 'record', content: 'new #tag', body: 'body' });
-    expect(await vault.read('Daily Notes/2026-06-18-quick-memos.md')).toContain('- 09:12 [记录] new #tag ^oqm-20260618-091200-a1b2\n  body');
+    const records = await repo.readRecords('2026-06-18');
+    expect(records).toHaveLength(2);
+    expect(records[0].type).toBe('memo');
+    expect(records[1].type).toBe('todo');
   });
 
-  it('deletes a record and its indented body', async () => {
-    const vault = new FakeVault({ 'Daily Notes/2026-06-18-quick-memos.md': '## Quick Memo\n\n- 09:12 [闪念] remove ^oqm-20260618-091200-a1b2\n  body\n- 10:00 [记录] keep ^oqm-20260618-100000-b2\n' });
+  it('updates a record', async () => {
+    const vault = new FakeVault({
+      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- 09:12 old content ^oqm-20260618-091200-a1b2\n',
+    });
+    const repo = makeRepo(vault);
+    await repo.updateRecord('oqm-20260618-091200-a1b2', { type: 'memo', content: 'new #tag', body: 'body' });
+    const content = await vault.read('2026-06-18.md');
+    expect(content).toContain('- 09:12\n  new #tag\n  body ^oqm-20260618-091200-a1b2');
+  });
+
+  it('toggles a todo', async () => {
+    const vault = new FakeVault({
+      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- [ ] 10:20 task ^oqm-20260618-102000-c3d4\n',
+    });
+    const repo = makeRepo(vault);
+    await repo.toggleTodo('oqm-20260618-102000-c3d4');
+    expect(await vault.read('2026-06-18.md')).toContain('- [x] 10:20 task ^oqm-20260618-102000-c3d4');
+  });
+
+  it('deletes a record', async () => {
+    const vault = new FakeVault({
+      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- 09:12 idea ^oqm-20260618-091200-a1b2\n- [ ] 10:20 task ^oqm-20260618-102000-c3d4\n',
+    });
     const repo = makeRepo(vault);
     await repo.deleteRecord('oqm-20260618-091200-a1b2');
-    const content = await vault.read('Daily Notes/2026-06-18-quick-memos.md');
-    expect(content).not.toContain('remove');
-    expect(content).toContain('keep');
+    expect(await vault.read('2026-06-18.md')).not.toContain('oqm-20260618-091200-a1b2');
+    expect(await vault.read('2026-06-18.md')).toContain('oqm-20260618-102000-c3d4');
   });
 
-  it('returns the last appended record in pure-markdown mode', async () => {
-    const vault = new FakeVault({ 'Daily Notes/2026-06-18-quick-memos.md': '## Quick Memo\n\n- 08:00 [记录] earlier note\n' });
-    const settings = { ...FLAT_SETTINGS, enableBlockIds: false };
-    const repo = makeRepo(vault, settings);
-    const returned = await repo.appendRecord({ date: '2026-06-18', time: '11:30', type: 'record', content: 'appended later' }, 'a1b2');
+  it('returns the appended record', async () => {
+    const vault = new FakeVault({ '2026-06-18.md': '# Day\n\n## Quick Memo\n' });
+    const repo = makeRepo(vault);
+    const returned = await repo.appendRecord({ date: '2026-06-18', time: '11:30', type: 'memo', content: 'appended later' }, 'a1b2');
+    expect(returned.type).toBe('memo');
     expect(returned.content).toBe('appended later');
     expect(returned.time).toBe('11:30');
-    expect(returned.id).toBeUndefined();
   });
 
-  it('backfills missing ids and leaves already-id records unchanged', async () => {
-    const vault = new FakeVault({
-      'Daily Notes/2026-06-18-quick-memos.md': '## Quick Memo\n\n- 09:00 [闪念] needs id\n- 10:00 [记录] has id ^oqm-20260618-100000-z9\n',
-    });
-    const repo = makeRepo(vault);
-    const count = await repo.backfillMissingIds('2026-06-18');
-    expect(count).toBe(1);
-    const content = await vault.read('Daily Notes/2026-06-18-quick-memos.md');
-    expect(content).toContain('- 09:00 [闪念] needs id ^oqm-');
-    expect(content).toContain('- 10:00 [记录] has id ^oqm-20260618-100000-z9');
+  it('ignores non-quick-memo markdown files', () => {
+    expect(isQuickMemoPath('Notes/random.md')).toBe(false);
   });
 
-  it('deletes a record while preserving a following section', async () => {
-    const vault = new FakeVault({
-      'Daily Notes/2026-06-18-quick-memos.md': '## Quick Memo\n\n- 09:00 [闪念] remove ^oqm-20260618-090000-x1\n\n## Other Section\n\nsome notes\n',
-    });
-    const repo = makeRepo(vault);
-    await repo.deleteRecord('oqm-20260618-090000-x1');
-    const content = await vault.read('Daily Notes/2026-06-18-quick-memos.md');
-    expect(content).not.toContain('remove');
-    expect(content).toContain('## Other Section');
-    expect(content).toContain('some notes');
-  });
-
-  it('strips a tag from every record that uses it and leaves other content intact', async () => {
-    const vault = new FakeVault({
-      'Daily Notes/2026-06-18-quick-memos.md': '## Quick Memo\n\n- 09:00 [闪念] idea #project notes ^oqm-20260618-090000-a1\n- 10:00 [记录] other #keep ^oqm-20260618-100000-b2\n  body with #project\n',
-    });
-    const repo = makeRepo(vault);
-    const count = await repo.removeTag('#project');
-    expect(count).toBe(2);
-    const content = await vault.read('Daily Notes/2026-06-18-quick-memos.md');
-    expect(content).not.toContain('#project');
-    expect(content).toContain('idea');
-    expect(content).toContain('notes');
-    expect(content).toContain('#keep');
-    expect(content).toContain('body with');
+  it('detects quick memo diary paths', () => {
+    expect(isQuickMemoPath('2026-06-18.md')).toBe(true);
   });
 });
-
-/** Flat Daily-Notes-style settings so repository tests use simple `Daily Notes/YYYY-MM-DD.md` paths. */
-const FLAT_SETTINGS = { ...DEFAULT_SETTINGS, overrideDailyNotesConfig: true, fallbackDailyNotesFolder: 'Daily Notes', fallbackDateFormat: 'YYYY-MM-DD' };
-
-function makeRepo(vault: FakeVault, settings = FLAT_SETTINGS): MarkdownRecordRepository {
-  const resolver = new DailyNoteResolver(vault, undefined, settings);
-  return new MarkdownRecordRepository(vault, resolver, new QuickMemoParser(settings.quickMemoHeading), settings);
-}

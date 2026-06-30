@@ -1,7 +1,6 @@
 import type { DateFileResolution, QuickMemoSettings } from '../types';
 import type { VaultLike } from '../test/fakeVault';
 import type { DailyNotesConfig } from './obsidianInternal';
-import { QUICK_MEMO_FILENAME_SUFFIX } from './path';
 
 export type DateFormatFn = (date: string, format: string) => string;
 
@@ -22,9 +21,9 @@ export class DailyNoteResolver {
     const hasDailyNotesConfig = Boolean(config?.folder || config?.format);
     const folder = trimSlashes(hasDailyNotesConfig ? config?.folder ?? '' : this.settings.fallbackDailyNotesFolder);
     const format = hasDailyNotesConfig ? config?.format ?? this.settings.fallbackDateFormat : this.settings.fallbackDateFormat;
-    // Keep Quick Memo in its own files (`-quick-memos.md`) so the user's regular
-    // daily notes are never written into.
-    const relative = `${this.formatFn(date, format)}${QUICK_MEMO_FILENAME_SUFFIX}.md`;
+    // The plugin now writes directly into the user's diary file (e.g.
+    // `2026-06-19.md`), no separate `-quick-memos` file.
+    const relative = `${this.formatFn(date, format)}.md`;
     return {
       date,
       filePath: folder ? `${folder}/${relative}` : relative,
@@ -34,7 +33,7 @@ export class DailyNoteResolver {
 
   async ensureDailyNote(date: string): Promise<string> {
     const resolution = await this.resolve(date);
-    const heading = `## ${this.settings.quickMemoHeading}`;
+    const heading = this.settings.quickMemoHeading;
 
     if (!this.vault.exists(resolution.filePath)) {
       await this.vault.create(resolution.filePath, `\n${heading}\n`);
@@ -42,7 +41,7 @@ export class DailyNoteResolver {
     }
 
     const content = await this.vault.read(resolution.filePath);
-    const headingPattern = new RegExp(`^##\\s+${escapeRegExp(this.settings.quickMemoHeading)}\\s*$`, 'mu');
+    const headingPattern = headingLinePattern(heading);
     if (!headingPattern.test(content)) {
       const separator = content.endsWith('\n') ? '\n' : '\n\n';
       await this.vault.modify(resolution.filePath, `${content}${separator}${heading}\n`);
@@ -62,6 +61,26 @@ export function formatDate(date: string, format: string): string {
 
 function trimSlashes(value: string): string {
   return value.replace(/^\/+|\/+$/gu, '');
+}
+
+/** Split a configured heading like `### memos` into its level and text. */
+export function parseHeading(heading: string): { level: number; text: string } {
+  const match = heading.match(/^(#{1,6})\s*(.+?)\s*$/u);
+  if (match) return { level: match[1].length, text: match[2] };
+  return { level: 2, text: heading.trim() };
+}
+
+/** Build a regex matching the configured heading line. */
+export function headingLinePattern(heading: string): RegExp {
+  const { level, text } = parseHeading(heading);
+  return new RegExp(`^#{${level}}\\s+${escapeRegExp(text)}\\s*$`, 'mu');
+}
+
+/** Build a regex matching any heading of the SAME level or HIGHER (fewer `#`),
+ *  used to find where a section ends. */
+export function headingEndPattern(heading: string): RegExp {
+  const { level } = parseHeading(heading);
+  return new RegExp(`^#{1,${level}}\\s+`, 'mu');
 }
 
 function escapeRegExp(text: string): string {

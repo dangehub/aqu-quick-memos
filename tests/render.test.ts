@@ -26,7 +26,7 @@ describe('renderOverview', () => {
 
     renderOverview(root, {
       settings: { ...DEFAULT_SETTINGS, userName: 'Ada', userSlogan: 'Think clearly' },
-      records: [makeRecord('oqm-1', '2026-06-18', '09:00', 'flash', 'idea #a')],
+      records: [makeRecord('oqm-1', '2026-06-18', '09:00', 'memo', 'idea #a')],
       tags: [['#a', 1]],
       heatmap: [{ date: '2026-06-18', count: 1 }],
       selectedDate: '2026-06-18',
@@ -43,11 +43,9 @@ describe('renderOverview', () => {
     expect(root.textContent).toContain('idea #a');
     expect(root.textContent).toContain('#a');
     expect(root.querySelector<HTMLTextAreaElement>('.oqm-input')?.placeholder).toContain('Markdown');
-    // Heatmap is a single flat stream of the last ~3 months (90 days ending today),
-    // placed between the slogan and the filter area. No month grouping or date text.
     expect(root.querySelectorAll('.oqm-heatmap-month-label')).toHaveLength(0);
     const dayCells = root.querySelectorAll('.oqm-heatmap-day');
-    expect(dayCells).toHaveLength(90); // 90-day window ending 2026-06-18
+    expect(dayCells).toHaveLength(90);
     const recordDay = Array.from(dayCells).find((cell) => cell.getAttribute('title') === '2026-06-18：1 条');
     expect(recordDay?.classList.contains('oqm-heatmap-level-4')).toBe(true);
     expect(recordDay?.classList.contains('oqm-heatmap-selected')).toBe(true);
@@ -79,7 +77,7 @@ describe('renderOverview', () => {
     const callbacks = makeCallbacks();
     renderOverview(root, {
       settings: DEFAULT_SETTINGS,
-      records: [makeRecord('oqm-9', '2026-06-18', '09:00', 'flash', 'idea #a')],
+      records: [makeRecord('oqm-9', '2026-06-18', '09:00', 'memo', 'idea #a')],
       tags: [],
       heatmap: [],
       selectedDate: '2026-06-18',
@@ -90,7 +88,6 @@ describe('renderOverview', () => {
       stats: makeStats(),
     }, callbacks);
 
-    // No bottom action row and no open menu by default; trigger is present.
     expect(root.querySelector('.oqm-record-actions')).toBeNull();
     expect(root.querySelector('.oqm-record-menu')).toBeNull();
     const trigger = root.querySelector('.oqm-record-menu-trigger') as HTMLButtonElement;
@@ -118,9 +115,9 @@ describe('renderOverview', () => {
 
     const items = Array.from(root.querySelectorAll('.oqm-record-menu-item')) as HTMLButtonElement[];
     expect(items.map((item) => item.textContent)).toEqual(['标记完成', '编辑', '复制块链接', '打开源文件', '删除']);
-    items[0].click(); // 标记完成
+    items[0].click();
     expect(callbacks.onToggleTodo).toHaveBeenCalled();
-    items[4].click(); // 删除
+    items[4].click();
     expect(callbacks.onDelete).toHaveBeenCalled();
   });
 
@@ -147,7 +144,7 @@ describe('renderOverview', () => {
     expect(callbacks.onFilterChange).toHaveBeenCalledWith({ tag: undefined });
   });
 
-  it('offers all six type filter options including todo status composites', () => {
+  it('offers five type filter options including todo status composites', () => {
     const root = document.createElement('div');
     renderOverview(root, {
       settings: DEFAULT_SETTINGS,
@@ -165,11 +162,11 @@ describe('renderOverview', () => {
     const select = root.querySelector<HTMLSelectElement>('.oqm-type-filter');
     expect(select).toBeTruthy();
     const options = Array.from(select!.querySelectorAll('option'));
-    expect(options).toHaveLength(6);
+    expect(options).toHaveLength(5);
     const values = options.map((option) => option.value);
-    expect(values).toEqual(['all', 'record', 'flash', 'todo', 'todo-done', 'todo-open']);
+    expect(values).toEqual(['all', 'memo', 'todo', 'todo-done', 'todo-open']);
     const labels = options.map((option) => option.textContent);
-    expect(labels).toEqual(['全部', '记录', '闪念', '待办', '已完成待办', '未完成待办']);
+    expect(labels).toEqual(['全部', '普通', '待办', '已完成待办', '未完成待办']);
   });
 
   it('reflects todo-done and todo-open composite filters in the select value', () => {
@@ -228,9 +225,9 @@ describe('renderOverview', () => {
     select.dispatchEvent(new Event('change'));
     expect(callbacks.onFilterChange).toHaveBeenLastCalledWith({ type: 'todo', todoStatus: 'open' });
 
-    select.value = 'flash';
+    select.value = 'memo';
     select.dispatchEvent(new Event('change'));
-    expect(callbacks.onFilterChange).toHaveBeenLastCalledWith({ type: 'flash', todoStatus: undefined });
+    expect(callbacks.onFilterChange).toHaveBeenLastCalledWith({ type: 'memo', todoStatus: undefined });
   });
 
   it('renders global stats below the heatmap', () => {
@@ -245,17 +242,15 @@ describe('renderOverview', () => {
       editingRecordId: undefined,
       openMenuRecordId: undefined,
       filters: {},
-      stats: makeStats({ days: 3, total: 10, flash: 4, record: 3, todo: 3, todoDone: 2 }),
+      stats: makeStats({ days: 3, total: 10, memo: 7, todo: 3, todoDone: 2 }),
     }, makeCallbacks());
 
     const stats = root.querySelector('.oqm-stats');
     expect(stats).toBeTruthy();
     expect(stats!.textContent).toContain('3');
     expect(stats!.textContent).toContain('10');
-    expect(stats!.textContent).toContain('闪念');
-    expect(stats!.textContent).toContain('记录');
+    expect(stats!.textContent).toContain('普通');
     expect(stats!.textContent).toContain('待办');
-    // completion ratio 2/3
     expect(stats!.textContent).toContain('2/3');
     const bar = stats!.querySelector<HTMLDivElement>('.oqm-stats-ratio-bar > div');
     expect(bar).toBeTruthy();
@@ -312,7 +307,6 @@ describe('renderOverview', () => {
       selectedDate: '2026-06-21',
       todayDate: '2026-06-21',
       editingRecordId: undefined,
-      openMenuRecordId: undefined,
       filters: {},
       stats: makeStats(),
     }, makeCallbacks());
@@ -325,8 +319,8 @@ describe('renderOverview', () => {
     renderOverview(root, {
       settings: DEFAULT_SETTINGS,
       records: [
-        makeRecord('1', '2026-06-18', '09:00', 'flash', 'idea #a'),
-        makeRecord('2', '2026-06-17', '08:00', 'record', 'note #a'),
+        makeRecord('1', '2026-06-18', '09:00', 'memo', 'idea #a'),
+        makeRecord('2', '2026-06-17', '08:00', 'memo', 'note #a'),
       ],
       tags: [['#a', 2]],
       heatmap: [],
@@ -338,9 +332,7 @@ describe('renderOverview', () => {
       stats: makeStats(),
     }, makeCallbacks());
 
-    // Cross-date mode: a "筛选结果" heading, not a single-date timeline heading.
     expect(root.querySelector('.oqm-main h3')?.textContent).toBe('筛选结果');
-    // Date group headings appear, newest date first.
     const groupHeadings = Array.from(root.querySelectorAll('.oqm-date-group-heading')).map((el) => el.textContent);
     expect(groupHeadings).toEqual(['2026-06-18', '2026-06-17']);
   });
@@ -364,7 +356,7 @@ function makeCallbacks() {
 }
 
 function makeStats(overrides: Partial<Stats> = {}): Stats {
-  return { days: 2, total: 4, flash: 1, record: 1, todo: 2, todoDone: 1, ...overrides };
+  return { days: 2, total: 4, memo: 2, todo: 2, todoDone: 1, ...overrides };
 }
 
 function makeRecord(id: string, date: string, time: string, type: QuickMemoRecord['type'], content: string, completed?: boolean): QuickMemoRecord {

@@ -1,4 +1,5 @@
-export type QuickMemoType = 'record' | 'flash' | 'todo';
+export type QuickMemoType = 'memo' | 'todo';
+export type InputMode = 'memo' | 'todo';
 export type SortDirection = 'asc' | 'desc';
 export type DateRangePreset = 'today' | '7d' | '30d' | 'custom';
 
@@ -6,12 +7,13 @@ export interface QuickMemoSettings {
   userName: string;
   userSlogan: string;
   avatar: string;
+  /** Section heading the plugin reads/writes, including the leading `#` marks
+   *  (e.g. `### memos`). Any heading level is supported. */
   quickMemoHeading: string;
   overrideDailyNotesConfig: boolean;
   fallbackDailyNotesFolder: string;
   fallbackDateFormat: string;
   enableBlockIds: boolean;
-  defaultRecordType: QuickMemoType;
   sortDirection: SortDirection;
 }
 

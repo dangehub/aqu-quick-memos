@@ -1,5 +1,5 @@
 import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import type { QuickMemoSettings, QuickMemoType, SortDirection } from '../types';
+import type { QuickMemoSettings, SortDirection } from '../types';
 
 interface QuickMemoSettingsHost extends Plugin {
   settings: QuickMemoSettings;
@@ -46,12 +46,12 @@ export class QuickMemoSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Quick Memo 标题')
-      .setDesc('插件只读写这个二级标题下的记录。')
+      .setName('Memos 标题')
+      .setDesc('插件只读写这个标题下的记录。支持 # 级别，如 `### memos`、`## 闪念笔记`。')
       .addText((text) => text
         .setValue(this.plugin.settings.quickMemoHeading)
         .onChange(async (value) => {
-          this.plugin.settings.quickMemoHeading = value.trim() || 'Quick Memo';
+          this.plugin.settings.quickMemoHeading = value.trim() || '### memos';
           await this.plugin.saveSettings();
         }));
 
@@ -77,7 +77,7 @@ export class QuickMemoSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('日期格式')
-      .setDesc('支持 YYYY、MM、DD。例如 YYYY/MM/YYYY-MM-DD 会生成 2026/06/2026-06-19-quick-memos.md。')
+      .setDesc('支持 YYYY、MM、DD。例如 YYYY-MM-DD 会生成 2026-06-19.md，YYYY/MM/YYYY-MM-DD 会生成 2026/06/2026-06-19.md。')
       .addText((text) => text
         .setValue(this.plugin.settings.fallbackDateFormat)
         .onChange(async (value) => {
@@ -92,18 +92,6 @@ export class QuickMemoSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.enableBlockIds)
         .onChange(async (value) => {
           this.plugin.settings.enableBlockIds = value;
-          await this.plugin.saveSettings();
-        }));
-
-    new Setting(containerEl)
-      .setName('默认记录类型')
-      .addDropdown((dropdown) => dropdown
-        .addOption('record', '记录')
-        .addOption('flash', '闪念')
-        .addOption('todo', '待办')
-        .setValue(this.plugin.settings.defaultRecordType)
-        .onChange(async (value) => {
-          this.plugin.settings.defaultRecordType = value as QuickMemoType;
           await this.plugin.saveSettings();
         }));
 

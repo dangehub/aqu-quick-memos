@@ -1,25 +1,15 @@
 import type { ParseResult, ParseWarning, QuickMemoRecord, QuickMemoType, RecordDraft } from '../types';
 import { contentHash, extractBlockId, stripBlockId } from './id';
+import { headingEndPattern, headingLinePattern } from '../daily-notes/DailyNoteResolver';
 
-const TYPE_LABELS: Record<QuickMemoType, string> = {
-  record: '记录',
-  flash: '闪念',
-  todo: '待办',
-};
-
-const LABEL_TYPES: Record<'记录' | '闪念' | '待办', QuickMemoType> = {
-  记录: 'record',
-  闪念: 'flash',
-  待办: 'todo',
-};
-
-function toQuickMemoType(label: string): QuickMemoType | undefined {
-  if (label === '记录' || label === '闪念' || label === '待办') return LABEL_TYPES[label];
-  return undefined;
-}
-
-const TASK_RE = /^- \[( |x|X)\] ([0-9]{2}:[0-9]{2}) \[(记录|闪念|待办)\] (.*)$/u;
-const LIST_RE = /^- ([0-9]{2}:[0-9]{2}) \[(记录|闪念|待办)\] (.*)$/u;
+// Task: matches "- [ ] HH:MM content" or "- [x] HH:MM content" (also [X]).
+const TASK_RE = /^- \[( |x|X)\] (\d{2}:\d{2}) (.+)$/u;
+// Normal memo: matches "- HH:MM content".
+const MEMO_RE = /^- (\d{2}:\d{2}) (.+)$/u;
+// Bare task line (multi-line): matches "- [ ] HH:MM" with nothing after time.
+const BARE_TASK_RE = /^- \[( |x|X)\] (\d{2}:\d{2})\s*$/u;
+// Bare memo line (multi-line): matches "- HH:MM" with nothing after time.
+const BARE_MEMO_RE = /^- (\d{2}:\d{2})\s*$/u;
 const TAG_RE = /(^|\s)(#[\p{L}\p{N}_/-]+)/gu;
 
 export class QuickMemoParser {
@@ -88,38 +78,80 @@ export class QuickMemoParser {
   }
 
   serializeRecord(draft: RecordDraft, id: string | undefined): string {
-    const label = TYPE_LABELS[draft.type];
     const content = draft.content.trim();
     const idPart = id ? ` ^${id}` : '';
-    const firstLine = draft.type === 'todo'
-      ? `- [${draft.completed ? 'x' : ' '}] ${draft.time} [${label}] ${content}${idPart}`
-      : `- ${draft.time} [${label}] ${content}${idPart}`;
+    const bodyText = draft.body?.trim();
 
-    if (!draft.body?.trim()) return firstLine;
+    const timePrefix = draft.type === 'todo'
+      ? `- [${draft.completed ? 'x' : ' '}] ${draft.time}`
+      : `- ${draft.time}`;
 
-    const body = draft.body
+    // Single-line: everything on the time line
+    if (!bodyText) return `${timePrefix} ${content}${idPart}`;
+
+    // Multi-line: time on first line, all content indented, block id on last line
+    const bodyLines = draft.body!
       .replace(/\r\n/gu, '\n')
-      .split('\n')
-      .map((line) => `  ${line}`)
-      .join('\n');
-    return `${firstLine}\n${body}`;
+      .split('\n');
+
+    // Content on first indented line, continuation on rest
+    const indentedLines = [`  ${content}`, ...bodyLines.map((line) => `  ${line}`)];
+
+    // Put block id on the LAST indented line
+    if (idPart) {
+      indentedLines[indentedLines.length - 1] += idPart;
+    }
+
+    return `${timePrefix}\n${indentedLines.join('\n')}`;
   }
 
   private parseRecordLine(line: string, body: string, filePath: string, date: string, lineStart: number, lineEnd: number): QuickMemoRecord | undefined {
     const withoutId = stripBlockId(line);
     const id = extractBlockId(line);
     const taskMatch = withoutId.match(TASK_RE);
-    const listMatch = withoutId.match(LIST_RE);
-    const match = taskMatch ?? listMatch;
-    if (!match) return undefined;
+    const memoMatch = withoutId.match(MEMO_RE);
+    const bareTaskMatch = withoutId.match(BARE_TASK_RE);
+    const bareMemoMatch = withoutId.match(BARE_MEMO_RE);
 
-    const isTask = Boolean(taskMatch);
-    const time = isTask ? match[2] : match[1];
-    const label = isTask ? match[3] : match[2];
-    const content = isTask ? match[4] : match[3];
-    const type = toQuickMemoType(label);
-    if (!type) return undefined;
-    const raw = body ? `${line}\n${body}` : line;
+    let type: QuickMemoType | undefined;
+    let time: string;
+    let content: string;
+    let completed: boolean | undefined;
+    let bodyText: string | undefined;
+
+    if (taskMatch) {
+      type = 'todo';
+      completed = taskMatch[1].toLowerCase() === 'x';
+      time = taskMatch[2];
+      content = taskMatch[3];
+      bodyText = body.trim() || undefined;
+    } else if (memoMatch) {
+      type = 'memo';
+      time = memoMatch[1];
+      content = memoMatch[2];
+      bodyText = body.trim() || undefined;
+    } else if (bareTaskMatch) {
+      type = 'todo';
+      completed = bareTaskMatch[1].toLowerCase() === 'x';
+      time = bareTaskMatch[2];
+      // Content is on the first indented continuation line, rest is body
+      const bodyLines = body.split('\n');
+      content = bodyLines[0]?.trim() ?? '';
+      bodyText = bodyLines.slice(1).join('\n').trim() || undefined;
+    } else if (bareMemoMatch) {
+      type = 'memo';
+      time = bareMemoMatch[1];
+      // Content is on the first indented continuation line, rest is body
+      const bodyLines = body.split('\n');
+      content = bodyLines[0]?.trim() ?? '';
+      bodyText = bodyLines.slice(1).join('\n').trim() || undefined;
+    } else {
+      return undefined;
+    }
+
+    const bodyPart = bodyText || '';
+    const raw = bodyPart ? `${line}\n${body}` : line;
+    const label = type === 'todo' ? '待办' : '普通';
 
     return {
       id,
@@ -127,26 +159,28 @@ export class QuickMemoParser {
       time,
       type,
       content: content.trim(),
-      body: body.trim() ? body : undefined,
-      tags: extractTags(`${content}\n${body}`),
-      completed: type === 'todo' ? match[1].toLowerCase() === 'x' : undefined,
+      body: bodyText || undefined,
+      tags: extractTags(`${content}\n${bodyPart}`),
+      completed: type === 'todo' ? completed : undefined,
       filePath,
       lineStart,
       lineEnd,
       hasStableId: Boolean(id),
       raw,
-      contentHash: contentHash(`${time} ${label} ${content} ${body}`),
+      contentHash: contentHash(`${time} ${label} ${content} ${bodyPart}`),
     };
   }
 
   private findSection(lines: string[]): { start: number; end: number } | undefined {
-    const headingPattern = new RegExp(`^##\\s+${escapeRegExp(this.heading())}\\s*$`, 'u');
+    const heading = this.heading();
+    const headingPattern = headingLinePattern(heading);
     const startHeading = lines.findIndex((line) => headingPattern.test(line));
     if (startHeading === -1) return undefined;
 
+    const endPattern = headingEndPattern(heading);
     let end = lines.length;
     for (let index = startHeading + 1; index < lines.length; index += 1) {
-      if (/^##\s+/u.test(lines[index])) {
+      if (endPattern.test(lines[index])) {
         end = index;
         break;
       }
@@ -165,8 +199,4 @@ function extractTags(text: string): string[] {
     tags.add(match[2]);
   }
   return Array.from(tags);
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }

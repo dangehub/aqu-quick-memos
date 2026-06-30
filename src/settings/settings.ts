@@ -1,29 +1,22 @@
-import type { QuickMemoSettings, QuickMemoType, SortDirection } from '../types';
-import { DEFAULT_QUICK_MEMO_HEADING } from '../constants';
+import type { QuickMemoSettings, SortDirection } from '../types';
 
 export const DEFAULT_SETTINGS: QuickMemoSettings = {
   userName: 'Quick Memo',
   userSlogan: 'Capture the moment.',
   avatar: '',
-  quickMemoHeading: DEFAULT_QUICK_MEMO_HEADING,
+  quickMemoHeading: '### memos',
   overrideDailyNotesConfig: true,
-  fallbackDailyNotesFolder: '每日工作',
-  fallbackDateFormat: 'YYYY/MM/YYYY-MM-DD',
+  fallbackDailyNotesFolder: '',
+  fallbackDateFormat: 'YYYY-MM-DD',
   enableBlockIds: true,
-  defaultRecordType: 'flash',
   sortDirection: 'desc',
 };
 
-const VALID_TYPES: QuickMemoType[] = ['record', 'flash', 'todo'];
 const VALID_SORTS: SortDirection[] = ['asc', 'desc'];
 
 export function normalizeSettings(raw: unknown): QuickMemoSettings {
   const value = isObject(raw) ? raw : {};
   const merged = { ...DEFAULT_SETTINGS, ...value } as QuickMemoSettings;
-
-  if (!VALID_TYPES.includes(merged.defaultRecordType)) {
-    merged.defaultRecordType = DEFAULT_SETTINGS.defaultRecordType;
-  }
 
   if (!VALID_SORTS.includes(merged.sortDirection)) {
     merged.sortDirection = DEFAULT_SETTINGS.sortDirection;

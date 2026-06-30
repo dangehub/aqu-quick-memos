@@ -281,7 +281,9 @@ export class QuickMemoView extends ItemView {
       new Notice('该记录缺少块 ID，无法复制块链接。');
       return;
     }
-    const link = `[[${record.filePath.replace(/\.md$/u, '')}#^${record.id}]]`;
+    // Extract just the filename without .md extension (e.g. "2026-07-01" from "每日工作/2026/07/2026-07-01.md")
+    const basename = record.filePath.split('/').pop()?.replace(/\.md$/u, '') ?? record.filePath;
+    const link = `![[${basename}#^${record.id}]]`;
     void navigator.clipboard.writeText(link);
     new Notice('已复制块链接');
   }
@@ -307,22 +309,21 @@ function localDateString(date: Date): string {
 }
 
 /** Reduce the full record set into the global stats shown under the heatmap. */
-function computeStats(records: QuickMemoRecord[]): { days: number; total: number; flash: number; record: number; todo: number; todoDone: number } {
+function computeStats(records: QuickMemoRecord[]): { days: number; total: number; memo: number; todo: number; todoDone: number } {
   const days = new Set<string>();
-  let flash = 0;
-  let record = 0;
+  let memo = 0;
   let todo = 0;
   let todoDone = 0;
   for (const r of records) {
     days.add(r.date);
-    if (r.type === 'flash') flash += 1;
-    else if (r.type === 'record') record += 1;
-    else if (r.type === 'todo') {
+    if (r.type === 'todo') {
       todo += 1;
       if (r.completed) todoDone += 1;
+    } else {
+      memo += 1;
     }
   }
-  return { days: days.size, total: records.length, flash, record, todo, todoDone };
+  return { days: days.size, total: records.length, memo, todo, todoDone };
 }
 
 /**

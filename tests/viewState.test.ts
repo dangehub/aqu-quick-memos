@@ -3,9 +3,9 @@ import type { QuickMemoRecord } from '../src/types';
 import { dateRangeForPreset, filterRecordsForView, rollSelectedDate, sortRecordsForDisplay } from '../src/view/viewState';
 
 const records: QuickMemoRecord[] = [
-  makeRecord('1', '2026-06-18', '09:00', 'flash', 'idea #a'),
+  makeRecord('1', '2026-06-18', '09:00', 'memo', 'idea #a'),
   makeRecord('2', '2026-06-18', '10:00', 'todo', 'task #b', true),
-  makeRecord('3', '2026-06-17', '08:00', 'record', 'note #a'),
+  makeRecord('3', '2026-06-17', '08:00', 'memo', 'note #a'),
 ];
 
 describe('viewState', () => {
@@ -17,7 +17,7 @@ describe('viewState', () => {
     const set: QuickMemoRecord[] = [
       makeRecord('open', '2026-06-18', '08:00', 'todo', 'open todo', false),
       makeRecord('done', '2026-06-18', '09:00', 'todo', 'done todo', true),
-      makeRecord('note', '2026-06-18', '10:00', 'record', 'plain note'),
+      makeRecord('note', '2026-06-18', '10:00', 'memo', 'plain note'),
     ];
     expect(filterRecordsForView(set, { type: 'todo', todoStatus: 'completed' }).map((record) => record.id)).toEqual(['done']);
   });
@@ -39,7 +39,7 @@ describe('viewState', () => {
     const set: QuickMemoRecord[] = [
       makeRecord('open', '2026-06-18', '08:00', 'todo', 'open todo', false),
       makeRecord('done', '2026-06-18', '09:00', 'todo', 'done todo', true),
-      makeRecord('note', '2026-06-18', '10:00', 'record', 'plain note'),
+      makeRecord('note', '2026-06-18', '10:00', 'memo', 'plain note'),
     ];
     expect(filterRecordsForView(set, { type: 'todo', todoStatus: 'open' }).map((record) => record.id)).toEqual(['open']);
   });
@@ -51,8 +51,8 @@ describe('viewState', () => {
 
   describe('sortRecordsForDisplay', () => {
     const pair: QuickMemoRecord[] = [
-      makeRecord('nine', '2026-06-18', '09:00', 'record', 'morning'),
-      makeRecord('ten', '2026-06-18', '10:00', 'record', 'later'),
+      makeRecord('nine', '2026-06-18', '09:00', 'memo', 'morning'),
+      makeRecord('ten', '2026-06-18', '10:00', 'memo', 'later'),
     ];
 
     it('returns newest first for desc (default)', () => {

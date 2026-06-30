@@ -4,6 +4,7 @@ import type { DailyNoteResolver } from '../daily-notes/DailyNoteResolver';
 import type { QuickMemoParser } from './QuickMemoParser';
 import { createBlockId } from './id';
 import { dateFromPath, isQuickMemoPath } from '../daily-notes/path';
+import { headingEndPattern, headingLinePattern } from '../daily-notes/DailyNoteResolver';
 
 export class MarkdownRecordRepository {
   constructor(
@@ -128,16 +129,17 @@ export class MarkdownRecordRepository {
 function insertIntoSection(markdown: string, heading: string, serialized: string): string {
   const normalized = markdown.replace(/\n+$/u, '');
   const lines = normalized.split('\n');
-  const headingPattern = new RegExp(`^##\\s+${escapeRegExp(heading)}\\s*$`, 'u');
+  const headingPattern = headingLinePattern(heading);
   const headingIndex = lines.findIndex((line) => headingPattern.test(line));
 
   if (headingIndex === -1) {
-    return `${normalized}\n\n## ${heading}\n\n${serialized}\n`;
+    return `${normalized}\n\n${heading}\n\n${serialized}\n`;
   }
 
+  const endPattern = headingEndPattern(heading);
   let insertAt = lines.length;
   for (let index = headingIndex + 1; index < lines.length; index += 1) {
-    if (/^##\s+/u.test(lines[index])) {
+    if (endPattern.test(lines[index])) {
       insertAt = index;
       break;
     }
