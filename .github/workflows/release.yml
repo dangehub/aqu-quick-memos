@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - '*'
 
 jobs:
   release:
@@ -35,7 +35,7 @@ jobs:
         with:
           files: release/*
           body: |
-            ## Quick Memo v${{ github.ref_name }}
+            ## Quick Memo ${{ github.ref_name }}
 
             ### 新增
             - 附件粘贴支持：粘贴图片自动保存并插入 `![[...]]`

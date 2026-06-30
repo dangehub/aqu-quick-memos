@@ -1,6 +1,6 @@
 {
   "name": "swz-quick-memos",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Markdown-native Obsidian quick memo plugin",
   "main": "main.js",
   "scripts": {
