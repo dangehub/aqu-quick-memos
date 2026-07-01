@@ -3,8 +3,8 @@
 #
 # Usage:
 #   ./scripts/deploy.sh                       # uses default target below
-#   OQM_TARGET=/path/to/vault/.obsidian/plugins/swz-quick-memos ./scripts/deploy.sh
-#   ./scripts/deploy.sh /path/to/vault/.obsidian/plugins/swz-quick-memos
+#   OQM_TARGET=/path/to/vault/.obsidian/plugins/aqu-quick-memos ./scripts/deploy.sh
+#   ./scripts/deploy.sh /path/to/vault/.obsidian/plugins/aqu-quick-memos
 #
 # What it does:
 #   1. Runs the production build (typecheck + esbuild).
@@ -19,7 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Default target vault plugin folder.
-DEFAULT_TARGET="/Users/songwz/01-XADS/10-工作记录/Winzdom/.obsidian/plugins/swz-quick-memos"
+DEFAULT_TARGET="/Users/qudange/Documents/测试用OB/.obsidian/plugins/aqu-quick-memos"
 
 # Allow override via first arg or OQM_TARGET env var.
 TARGET="${1:-${OQM_TARGET:-$DEFAULT_TARGET}}"

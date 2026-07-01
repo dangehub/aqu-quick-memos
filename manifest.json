@@ -1,9 +1,9 @@
 {
-  "id": "swz-quick-memos",
+  "id": "aqu-quick-memos",
   "name": "Quick Memo",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "minAppVersion": "1.7.2",
   "description": "Markdown-native daily quick records, flash thoughts, todos, history, filters, and heatmap.",
-  "author": "songwz",
+  "author": "dangehub",
   "isDesktopOnly": false
 }

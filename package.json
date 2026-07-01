@@ -1,6 +1,6 @@
 {
-  "name": "swz-quick-memos",
-  "version": "0.3.1",
+  "name": "aqu-quick-memos",
+  "version": "0.4.0",
   "description": "Markdown-native Obsidian quick memo plugin",
   "main": "main.js",
   "scripts": {
@@ -16,7 +16,7 @@
     "memo",
     "daily-notes"
   ],
-  "author": "songwz",
+  "author": "dangehub",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.14.10",

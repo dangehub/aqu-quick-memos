@@ -289,7 +289,7 @@ npm test
 ### 6.3 部署测试库
 ```bash
 cp main.js manifest.json styles.css \
-  /Users/qudange/Documents/测试用OB/.obsidian/plugins/swz-quick-memos/
+  /Users/qudange/Documents/测试用OB/.obsidian/plugins/aqu-quick-memos/
 ```
 
 ### 6.4 注意事项
