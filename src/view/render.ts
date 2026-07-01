@@ -87,34 +87,34 @@ const TYPE_FILTER_OPTIONS: ReadonlyArray<readonly [TypeFilterValue, string]> = [
 
 export function renderOverview(root: HTMLElement, state: OverviewState, callbacks: OverviewCallbacks): void {
   root.innerHTML = '';
-  root.classList.add('oqm-root');
+  root.classList.add('omm-root');
   // Always toggle based on state — class may be stale from previous renders
-  root.classList.toggle('oqm-sidebar-collapsed', state.sidebarCollapsed);
+  root.classList.toggle('omm-sidebar-collapsed', state.sidebarCollapsed);
 
   const markdown = state.markdown ?? TEXT_MARKDOWN;
-  const layout = appendDiv(root, 'oqm-layout');
-  renderSidebar(appendDiv(layout, 'oqm-sidebar'), state, callbacks);
+  const layout = appendDiv(root, 'omm-layout');
+  renderSidebar(appendDiv(layout, 'omm-sidebar'), state, callbacks);
 
   /* Mobile drawer backdrop — tapping it closes the sidebar. */
-  const backdrop = appendDiv(root, 'oqm-sidebar-backdrop');
+  const backdrop = appendDiv(root, 'omm-sidebar-backdrop');
   backdrop.addEventListener('click', () => callbacks.onToggleSidebar());
 
-  renderMain(appendDiv(layout, 'oqm-main'), state, callbacks, markdown);
+  renderMain(appendDiv(layout, 'omm-main'), state, callbacks, markdown);
 }
 
 function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: OverviewCallbacks): void {
-  const profile = appendDiv(container, 'oqm-profile');
+  const profile = appendDiv(container, 'omm-profile');
   if (state.settings.avatar) {
-    const avatar = appendEl(profile, 'img', 'oqm-avatar');
+    const avatar = appendEl(profile, 'img', 'omm-avatar');
     avatar.src = state.settings.avatar;
     avatar.alt = state.settings.userName;
   }
-  const profileText = appendDiv(profile, 'oqm-profile-text');
+  const profileText = appendDiv(profile, 'omm-profile-text');
   appendEl(profileText, 'h2', '', state.settings.userName);
   appendEl(profileText, 'p', '', state.settings.userSlogan);
 
   // Collapse toggle button in the profile area
-  const collapseBtn = appendEl(profile, 'button', 'oqm-sidebar-collapse-btn');
+  const collapseBtn = appendEl(profile, 'button', 'omm-sidebar-collapse-btn');
   collapseBtn.type = 'button';
   collapseBtn.textContent = state.sidebarCollapsed ? '☰' : '✕';
   collapseBtn.title = state.sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏';
@@ -124,9 +124,9 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
   renderHeatmap(container, state.heatmap, state.todayDate, state.selectedDate, callbacks);
 
   // Date jumper — pick any arbitrary date (not limited to heatmap window).
-  const jumper = appendDiv(container, 'oqm-date-jumper');
-  appendDiv(jumper, 'oqm-section-label', '跳转到日期');
-  const dateInput = appendEl(jumper, 'input', 'oqm-date-jumper-input');
+  const jumper = appendDiv(container, 'omm-date-jumper');
+  appendDiv(jumper, 'omm-section-label', '跳转到日期');
+  const dateInput = appendEl(jumper, 'input', 'omm-date-jumper-input');
   dateInput.type = 'date';
   dateInput.value = state.selectedDate;
   dateInput.setAttribute('aria-label', '选择日期跳转');
@@ -135,17 +135,17 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
   };
 
   // Date range filter — two date inputs + apply button
-  const rangeSection = appendDiv(container, 'oqm-date-range');
-  appendDiv(rangeSection, 'oqm-section-label', '日期范围筛选');
-  const rangeInputs = appendDiv(rangeSection, 'oqm-date-range-inputs');
-  const rangeStart = appendEl(rangeInputs, 'input', 'oqm-date-range-start');
+  const rangeSection = appendDiv(container, 'omm-date-range');
+  appendDiv(rangeSection, 'omm-section-label', '日期范围筛选');
+  const rangeInputs = appendDiv(rangeSection, 'omm-date-range-inputs');
+  const rangeStart = appendEl(rangeInputs, 'input', 'omm-date-range-start');
   rangeStart.type = 'date';
   rangeStart.setAttribute('aria-label', '开始日期');
-  const rangeSep = appendEl(rangeInputs, 'span', 'oqm-date-range-sep', '至');
-  const rangeEnd = appendEl(rangeInputs, 'input', 'oqm-date-range-end');
+  const rangeSep = appendEl(rangeInputs, 'span', 'omm-date-range-sep', '至');
+  const rangeEnd = appendEl(rangeInputs, 'input', 'omm-date-range-end');
   rangeEnd.type = 'date';
   rangeEnd.setAttribute('aria-label', '结束日期');
-  const applyBtn = appendEl(rangeSection, 'button', 'oqm-date-range-apply', '筛选');
+  const applyBtn = appendEl(rangeSection, 'button', 'omm-date-range-apply', '筛选');
   applyBtn.type = 'button';
   applyBtn.onclick = () => {
     if (rangeStart.value && rangeEnd.value) {
@@ -160,9 +160,9 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
 
   renderStats(container, state.stats);
 
-  appendDiv(container, 'oqm-section-label', '筛选');
+  appendDiv(container, 'omm-section-label', '筛选');
 
-  const typeSelect = appendEl(container, 'select', 'oqm-type-filter');
+  const typeSelect = appendEl(container, 'select', 'omm-type-filter');
   for (const [value, label] of TYPE_FILTER_OPTIONS) {
     appendOption(typeSelect, label, value);
   }
@@ -178,7 +178,7 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
     }
   };
 
-  const search = appendEl(container, 'input', 'oqm-search');
+  const search = appendEl(container, 'input', 'omm-search');
   search.type = 'search';
   search.placeholder = '关键词搜索（回车搜索）';
   search.value = state.filters.text ?? '';
@@ -199,11 +199,11 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
   });
 
   if (state.tags.length > 0) {
-    appendDiv(container, 'oqm-section-label', '标签');
-    const tags = appendDiv(container, 'oqm-tags');
+    appendDiv(container, 'omm-section-label', '标签');
+    const tags = appendDiv(container, 'omm-tags');
     for (const [tag, count] of state.tags) {
       const selected = state.filters.tag === tag;
-      const button = appendEl(tags, 'button', selected ? 'oqm-tag-selected' : '', `${tag} ${count}`);
+      const button = appendEl(tags, 'button', selected ? 'omm-tag-selected' : '', `${tag} ${count}`);
       button.setAttribute('aria-pressed', String(selected));
       button.title = selected ? '再次点击取消标签筛选' : '按此标签筛选';
       button.onclick = () => callbacks.onFilterChange({ tag: selected ? undefined : tag });
@@ -216,15 +216,15 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
 
   // Warnings: show a gentle badge at the bottom when the parser found incompatible content
   if (state.warningCount > 0) {
-    const warnDiv = appendDiv(container, 'oqm-warnings');
+    const warnDiv = appendDiv(container, 'omm-warnings');
     appendDiv(warnDiv, '', `${state.warningCount} 条记录格式与本插件不兼容，未显示。`);
   }
 }
 
 function renderMain(container: HTMLElement, state: OverviewState, callbacks: OverviewCallbacks, markdown: MarkdownApi): void {
   /* ── Mobile top bar: ☰ | title | sort ── */
-  const topBar = appendDiv(container, 'oqm-mobile-topbar');
-  const menuBtn = appendEl(topBar, 'button', 'oqm-mobile-menu-btn');
+  const topBar = appendDiv(container, 'omm-mobile-topbar');
+  const menuBtn = appendEl(topBar, 'button', 'omm-mobile-menu-btn');
   menuBtn.type = 'button';
   menuBtn.setAttribute('aria-label', state.sidebarCollapsed ? '打开侧边栏' : '关闭侧边栏');
   menuBtn.textContent = state.sidebarCollapsed ? '☰' : '✕';
@@ -233,7 +233,7 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
     callbacks.onToggleSidebar();
   });
 
-  const titleSpan = appendEl(topBar, 'span', 'oqm-mobile-title');
+  const titleSpan = appendEl(topBar, 'span', 'omm-mobile-title');
   const hasFilter = Boolean(state.filters.tag) || Boolean(state.filters.text?.trim());
   if (hasFilter) {
     titleSpan.textContent = '筛选结果';
@@ -245,7 +245,7 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
     titleSpan.textContent = `${state.selectedDate} 时间线`;
   }
 
-  const sortBtn = appendEl(topBar, 'button', 'oqm-mobile-sort-btn');
+  const sortBtn = appendEl(topBar, 'button', 'omm-mobile-sort-btn');
   sortBtn.type = 'button';
   sortBtn.setAttribute('aria-label', '切换排序');
   sortBtn.textContent = state.sortDirection === 'asc' ? '↑' : '↓';
@@ -254,23 +254,23 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
     callbacks.onToggleSort();
   });
 
-  const composer = appendDiv(container, 'oqm-composer');
+  const composer = appendDiv(container, 'omm-composer');
 
   // First row: type selector on the left, the date the record will save to on the
   // right, so the user always knows which day they're capturing into.
-  const row = appendDiv(composer, 'oqm-composer-row');
-  const type = appendEl(row, 'select', 'oqm-type');
+  const row = appendDiv(composer, 'omm-composer-row');
+  const type = appendEl(row, 'select', 'omm-type');
   for (const [value, label] of TYPE_OPTIONS) {
     appendOption(type, label, value);
   }
   type.value = state.inputMode ?? 'memo';
-  const dateEl = appendDiv(row, 'oqm-composer-date', state.selectedDate);
+  const dateEl = appendDiv(row, 'omm-composer-date', state.selectedDate);
   // On mobile, tapping the date opens the sidebar drawer so the user can
   // use the heatmap to jump to a different date.
   dateEl.addEventListener('click', () => callbacks.onToggleSidebar());
 
   // Hidden file input + attach button for inserting images on mobile.
-  const attachInput = appendEl(composer, 'input', 'oqm-attach-input');
+  const attachInput = appendEl(composer, 'input', 'omm-attach-input');
   attachInput.type = 'file';
   attachInput.accept = 'image/*';
   attachInput.style.display = 'none';
@@ -279,17 +279,17 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
     if (file) callbacks.onAttachFile(file, input);
     attachInput.value = '';
   };
-  const attachBtn = appendEl(row, 'button', 'oqm-attach-btn', '📎');
+  const attachBtn = appendEl(row, 'button', 'omm-attach-btn', '📎');
   attachBtn.type = 'button';
   attachBtn.title = '插入图片';
   attachBtn.onclick = () => attachInput.click();
 
   // Plain markdown source editor. (The cards below render the markdown; the
   // composer itself stays a source textarea.)
-  const input = appendEl(composer, 'textarea', 'oqm-input');
+  const input = appendEl(composer, 'textarea', 'omm-input');
   input.placeholder = '输入 Markdown，Cmd/Ctrl + Enter 保存';
 
-  const save = appendEl(composer, 'button', 'oqm-save', '保存');
+  const save = appendEl(composer, 'button', 'omm-save', '保存');
   const submit = (): void => {
     const content = input.value.trim();
     if (!content) return;
@@ -307,38 +307,38 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
 
   // ── Filter chip: show the active date/range filter with a clear button ──
   if (state.viewMode === 'date' || state.viewMode === 'range') {
-    const chipRow = appendDiv(container, 'oqm-filter-chip-row');
-    const chip = appendDiv(chipRow, 'oqm-filter-chip');
+    const chipRow = appendDiv(container, 'omm-filter-chip-row');
+    const chip = appendDiv(chipRow, 'omm-filter-chip');
     let label: string;
     if (state.viewMode === 'date') {
       label = state.selectedDate;
     } else {
       label = `${state.dateRangeStart} 至 ${state.dateRangeEnd}`;
     }
-    const chipText = appendEl(chip, 'span', 'oqm-filter-chip-text', label);
-    const clearBtn = appendEl(chip, 'button', 'oqm-filter-chip-clear', '✕');
+    const chipText = appendEl(chip, 'span', 'omm-filter-chip-text', label);
+    const clearBtn = appendEl(chip, 'button', 'omm-filter-chip-clear', '✕');
     clearBtn.type = 'button';
     clearBtn.title = '清除日期筛选';
     clearBtn.onclick = () => callbacks.onShowAll();
   }
 
   // Sort direction toggle + date heading row
-  const headingRow = appendDiv(container, 'oqm-heading-row');
+  const headingRow = appendDiv(container, 'omm-heading-row');
   if (crossDate || state.viewMode === 'all') {
     if (crossDate) {
       appendEl(headingRow, 'h3', '', '筛选结果');
     } else {
       appendEl(headingRow, 'h3', '', `全部记录 · ${state.recordsTotal} 条`);
     }
-    const sortBtn = appendEl(headingRow, 'button', 'oqm-sort-toggle');
+    const sortBtn = appendEl(headingRow, 'button', 'omm-sort-toggle');
     sortBtn.type = 'button';
     sortBtn.textContent = state.sortDirection === 'asc' ? '↑ 升序' : '↓ 降序';
     sortBtn.title = state.sortDirection === 'asc' ? '切换为降序' : '切换为升序';
     sortBtn.onclick = () => callbacks.onToggleSort();
     renderCrossDateTimeline(container, state, callbacks, markdown);
     if (state.records.length < state.recordsTotal) {
-      const loadMoreDiv = appendDiv(container, 'oqm-load-more');
-      const loadBtn = appendEl(loadMoreDiv, 'button', 'oqm-load-more-btn');
+      const loadMoreDiv = appendDiv(container, 'omm-load-more');
+      const loadBtn = appendEl(loadMoreDiv, 'button', 'omm-load-more-btn');
       loadBtn.type = 'button';
       loadBtn.textContent = `加载更多（已显示 ${state.records.length} / ${state.recordsTotal}）`;
       loadBtn.onclick = () => callbacks.onLoadMore();
@@ -352,7 +352,7 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
     ? `${state.selectedDate} 时间线`
     : `${state.dateRangeStart} 至 ${state.dateRangeEnd}`;
   appendEl(headingRow, 'h3', '', dateLabel);
-  const sortBtn2 = appendEl(headingRow, 'button', 'oqm-sort-toggle');
+  const sortBtn2 = appendEl(headingRow, 'button', 'omm-sort-toggle');
   sortBtn2.type = 'button';
   sortBtn2.textContent = state.sortDirection === 'asc' ? '↑ 升序' : '↓ 降序';
   sortBtn2.title = state.sortDirection === 'asc' ? '切换为降序' : '切换为升序';
@@ -371,9 +371,9 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
 
   // Single-date mode: flat list, no date grouping needed.
 
-  const list = appendDiv(container, 'oqm-record-list');
+  const list = appendDiv(container, 'omm-record-list');
   if (state.records.length === 0) {
-    appendDiv(list, 'oqm-empty', '这一天还没有 Quick Memo。');
+    appendDiv(list, 'omm-empty', '这一天还没有 Quick Memo。');
     return;
   }
 
@@ -384,8 +384,8 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
 
   // Lazy load: show "load more" button when there are more records
   if (state.records.length < state.recordsTotal) {
-    const loadMoreDiv = appendDiv(container, 'oqm-load-more');
-    const loadBtn = appendEl(loadMoreDiv, 'button', 'oqm-load-more-btn');
+    const loadMoreDiv = appendDiv(container, 'omm-load-more');
+    const loadBtn = appendEl(loadMoreDiv, 'button', 'omm-load-more-btn');
     loadBtn.type = 'button';
     loadBtn.textContent = `加载更多（已显示 ${state.records.length} / ${state.recordsTotal}）`;
     loadBtn.onclick = () => callbacks.onLoadMore();
@@ -395,8 +395,8 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
 
 function renderRangeTimeline(container: HTMLElement, state: OverviewState, callbacks: OverviewCallbacks, markdown: MarkdownApi): void {
   if (state.records.length === 0) {
-    const list = appendDiv(container, 'oqm-record-list');
-    appendDiv(list, 'oqm-empty', '该时间段内还没有 Quick Memo。');
+    const list = appendDiv(container, 'omm-record-list');
+    appendDiv(list, 'omm-empty', '该时间段内还没有 Quick Memo。');
     return;
   }
 
@@ -408,11 +408,11 @@ function renderRangeTimeline(container: HTMLElement, state: OverviewState, callb
     groups.set(record.date, bucket);
   }
 
-  const list = appendDiv(container, 'oqm-record-list');
+  const list = appendDiv(container, 'omm-record-list');
   for (const [date, groupRecords] of groups) {
-    const group = appendDiv(list, 'oqm-date-group');
-    appendDiv(group, 'oqm-date-group-heading', date);
-    const cards = appendDiv(group, 'oqm-date-group-cards');
+    const group = appendDiv(list, 'omm-date-group');
+    appendDiv(group, 'omm-date-group-heading', date);
+    const cards = appendDiv(group, 'omm-date-group-cards');
     for (const record of groupRecords) {
       const key = recordKey(record);
       renderRecord(cards, record, state.editingRecordId === key, state.openMenuRecordId === key, callbacks, markdown);
@@ -421,8 +421,8 @@ function renderRangeTimeline(container: HTMLElement, state: OverviewState, callb
 
   // Lazy load
   if (state.records.length < state.recordsTotal) {
-    const loadMoreDiv = appendDiv(container, 'oqm-load-more');
-    const loadBtn = appendEl(loadMoreDiv, 'button', 'oqm-load-more-btn');
+    const loadMoreDiv = appendDiv(container, 'omm-load-more');
+    const loadBtn = appendEl(loadMoreDiv, 'button', 'omm-load-more-btn');
     loadBtn.type = 'button';
     loadBtn.textContent = `加载更多（已显示 ${state.records.length} / ${state.recordsTotal}）`;
     loadBtn.onclick = () => callbacks.onLoadMore();
@@ -433,8 +433,8 @@ function renderRangeTimeline(container: HTMLElement, state: OverviewState, callb
 function renderCrossDateTimeline(container: HTMLElement, state: OverviewState, callbacks: OverviewCallbacks, markdown: MarkdownApi): void {
   appendEl(container, 'h3', '', '筛选结果');
   if (state.records.length === 0) {
-    const list = appendDiv(container, 'oqm-record-list');
-    appendDiv(list, 'oqm-empty', '没有匹配的 Quick Memo。');
+    const list = appendDiv(container, 'omm-record-list');
+    appendDiv(list, 'omm-empty', '没有匹配的 Quick Memo。');
     return;
   }
 
@@ -447,11 +447,11 @@ function renderCrossDateTimeline(container: HTMLElement, state: OverviewState, c
     groups.set(record.date, bucket);
   }
 
-  const list = appendDiv(container, 'oqm-record-list');
+  const list = appendDiv(container, 'omm-record-list');
   for (const [date, groupRecords] of groups) {
-    const group = appendDiv(list, 'oqm-date-group');
-    appendDiv(group, 'oqm-date-group-heading', date);
-    const cards = appendDiv(group, 'oqm-date-group-cards');
+    const group = appendDiv(list, 'omm-date-group');
+    appendDiv(group, 'omm-date-group-heading', date);
+    const cards = appendDiv(group, 'omm-date-group-cards');
     for (const record of groupRecords) {
       const key = recordKey(record);
       renderRecord(cards, record, state.editingRecordId === key, state.openMenuRecordId === key, callbacks, markdown);
@@ -460,10 +460,10 @@ function renderCrossDateTimeline(container: HTMLElement, state: OverviewState, c
 }
 
 function renderRecord(list: HTMLElement, record: QuickMemoRecord, editing: boolean, menuOpen: boolean, callbacks: OverviewCallbacks, markdown: MarkdownApi): void {
-  const card = appendDiv(list, `oqm-record oqm-record-${record.type}${record.completed ? ' is-done' : ''}`);
+  const card = appendDiv(list, `omm-record omm-record-${record.type}${record.completed ? ' is-done' : ''}`);
 
   // Top-right "more" trigger; actions live in a dropdown rather than a bottom row.
-  const trigger = appendEl(card, 'button', 'oqm-record-menu-trigger');
+  const trigger = appendEl(card, 'button', 'omm-record-menu-trigger');
   trigger.type = 'button';
   trigger.textContent = '⋮';
   trigger.setAttribute('aria-label', '更多操作');
@@ -471,24 +471,24 @@ function renderRecord(list: HTMLElement, record: QuickMemoRecord, editing: boole
   trigger.setAttribute('aria-expanded', String(menuOpen));
   trigger.onclick = () => callbacks.onToggleMenu(recordKey(record));
 
-  const meta = appendDiv(card, 'oqm-record-meta');
+  const meta = appendDiv(card, 'omm-record-meta');
   appendEl(meta, 'span', '', record.time);
-  const badge = appendEl(meta, 'span', 'oqm-record-badge') as HTMLElement;
+  const badge = appendEl(meta, 'span', 'omm-record-badge') as HTMLElement;
   badge.textContent = typeLabel(record.type);
   if (record.type === 'todo') badge.textContent += record.completed ? ' · 已完成' : ' · 未完成';
 
   if (editing) {
-    const editType = appendEl(card, 'select', 'oqm-edit-type');
+    const editType = appendEl(card, 'select', 'omm-edit-type');
     for (const [value, label] of TYPE_OPTIONS) {
       appendOption(editType, label, value);
     }
     editType.value = record.type;
 
-    const editor = appendEl(card, 'textarea', 'oqm-edit-input');
+    const editor = appendEl(card, 'textarea', 'omm-edit-input');
     editor.value = record.body ? `${record.content}\n${record.body}` : record.content;
     window.setTimeout(() => editor.focus(), 0);
 
-    const editActions = appendDiv(card, 'oqm-record-actions');
+    const editActions = appendDiv(card, 'omm-record-actions');
     (appendEl(editActions, 'button', '', '保存')).onclick = () => {
       const [content, ...bodyLines] = editor.value.replace(/\r\n/gu, '\n').split('\n');
       callbacks.onSaveEdit(record, {
@@ -503,9 +503,9 @@ function renderRecord(list: HTMLElement, record: QuickMemoRecord, editing: boole
 
   // Rendered markdown content. Todo records get a checkbox that toggles the
   // record's completion, which syncs the `- [ ]`/`- [x]` marker in the file.
-  const body = appendDiv(card, 'oqm-record-body');
+  const body = appendDiv(card, 'omm-record-body');
   if (record.type === 'todo') {
-    const checkbox = appendEl(body, 'input', 'oqm-record-checkbox');
+    const checkbox = appendEl(body, 'input', 'omm-record-checkbox');
     checkbox.type = 'checkbox';
     checkbox.checked = Boolean(record.completed);
     checkbox.setAttribute('aria-label', record.completed ? '标记为未完成' : '标记为完成');
@@ -515,14 +515,14 @@ function renderRecord(list: HTMLElement, record: QuickMemoRecord, editing: boole
       checkbox.disabled = true;
     }
   }
-  const contentEl = appendDiv(body, 'oqm-record-content');
+  const contentEl = appendDiv(body, 'omm-record-content');
   markdown.render(record.body ? `${record.content}\n${record.body}` : record.content, contentEl);
 
   // Attach image lightbox to any <img> rendered inside the card body.
   const images = contentEl.querySelectorAll('img');
   for (let i = 0; i < images.length; i++) {
     const img = images[i];
-    img.classList.add('oqm-img-zoomable');
+    img.classList.add('omm-img-zoomable');
     img.style.cursor = 'zoom-in';
     img.addEventListener('click', (event: MouseEvent) => {
       event.stopPropagation();
@@ -531,20 +531,20 @@ function renderRecord(list: HTMLElement, record: QuickMemoRecord, editing: boole
   }
 
   if (menuOpen) {
-    const menu = appendDiv(card, 'oqm-record-menu');
+    const menu = appendDiv(card, 'omm-record-menu');
     if (record.type === 'todo') {
       addMenuItem(menu, record.completed ? '标记未完成' : '标记完成', () => callbacks.onToggleTodo(record));
     }
     addMenuItem(menu, '编辑', () => callbacks.onEdit(record));
     addMenuItem(menu, '复制块链接', () => callbacks.onCopyBlock(record));
     addMenuItem(menu, '打开源文件', () => callbacks.onOpenSource(record));
-    appendDiv(menu, 'oqm-record-menu-divider');
-    addMenuItem(menu, '删除', () => callbacks.onDelete(record), 'oqm-record-menu-item-danger');
+    appendDiv(menu, 'omm-record-menu-divider');
+    addMenuItem(menu, '删除', () => callbacks.onDelete(record), 'omm-record-menu-item-danger');
   }
 }
 
 function addMenuItem(menu: HTMLElement, label: string, handler: () => void, cls?: string): void {
-  const item = appendEl(menu, 'button', `oqm-record-menu-item${cls ? ` ${cls}` : ''}`, label);
+  const item = appendEl(menu, 'button', `omm-record-menu-item${cls ? ` ${cls}` : ''}`, label);
   item.type = 'button';
   item.onclick = handler;
 }
@@ -556,31 +556,31 @@ export function recordKey(record: QuickMemoRecord): string {
 }
 
 function renderStats(container: HTMLElement, stats: OverviewStats): void {
-  const block = appendDiv(container, 'oqm-stats');
+  const block = appendDiv(container, 'omm-stats');
   const ratioPct = stats.todo > 0 ? Math.round((stats.todoDone / stats.todo) * 1000) / 10 : 0;
 
   // Top row: the two record types (memo / todo).
-  const typesRow = appendDiv(block, 'oqm-stats-row oqm-stats-types');
+  const typesRow = appendDiv(block, 'omm-stats-row omm-stats-types');
   addStatCard(typesRow, String(stats.memo), '闪念');
   addStatCard(typesRow, String(stats.todo), '待办');
 
   // Bottom row: usage breadth — days used and total records, each filling half.
-  const breadthRow = appendDiv(block, 'oqm-stats-row oqm-stats-breadth');
+  const breadthRow = appendDiv(block, 'omm-stats-row omm-stats-breadth');
   addStatCard(breadthRow, String(stats.days), '使用天数');
   addStatCard(breadthRow, String(stats.total), '总记录');
 
   // Completion ratio: a thin progress bar with just the done/total figure.
-  const ratio = appendDiv(block, 'oqm-stats-ratio');
-  const bar = appendDiv(ratio, 'oqm-stats-ratio-bar');
-  const fill = appendDiv(bar, 'oqm-stats-ratio-fill');
+  const ratio = appendDiv(block, 'omm-stats-ratio');
+  const bar = appendDiv(ratio, 'omm-stats-ratio-bar');
+  const fill = appendDiv(bar, 'omm-stats-ratio-fill');
   fill.style.width = `${ratioPct}%`;
-  appendDiv(ratio, 'oqm-stats-ratio-text', `${stats.todoDone}/${stats.todo}`);
+  appendDiv(ratio, 'omm-stats-ratio-text', `${stats.todoDone}/${stats.todo}`);
 }
 
 function addStatCard(parent: HTMLElement, num: string, label: string): void {
-  const card = appendDiv(parent, 'oqm-stat-card');
-  appendDiv(card, 'oqm-stat-num', num);
-  appendDiv(card, 'oqm-stat-label', label);
+  const card = appendDiv(parent, 'omm-stat-card');
+  appendDiv(card, 'omm-stat-num', num);
+  appendDiv(card, 'omm-stat-label', label);
 }
 
 function renderHeatmap(container: HTMLElement, heatmap: HeatmapDay[], todayDate: string, selectedDate: string, callbacks: OverviewCallbacks): void {
@@ -589,23 +589,23 @@ function renderHeatmap(container: HTMLElement, heatmap: HeatmapDay[], todayDate:
   const max = Math.max(1, ...heatmap.map((day) => day.count));
 
   // ── Header: arrows (left) | month-year (center) | today (right) ──
-  const header = appendDiv(container, 'oqm-heatmap-header');
+  const header = appendDiv(container, 'omm-heatmap-header');
 
-  const navGroup = appendDiv(header, 'oqm-heatmap-nav-group');
-  const prevBtn = appendEl(navGroup, 'button', 'oqm-heatmap-nav', '◀');
+  const navGroup = appendDiv(header, 'omm-heatmap-nav-group');
+  const prevBtn = appendEl(navGroup, 'button', 'omm-heatmap-nav', '◀');
   prevBtn.type = 'button';
   prevBtn.title = '上一个月';
   prevBtn.onclick = () => callbacks.onHeatmapPrevMonth();
-  const nextBtn = appendEl(navGroup, 'button', 'oqm-heatmap-nav', '▶');
+  const nextBtn = appendEl(navGroup, 'button', 'omm-heatmap-nav', '▶');
   nextBtn.type = 'button';
   nextBtn.title = '下一个月';
   nextBtn.onclick = () => callbacks.onHeatmapNextMonth();
 
   const [selYear, selMonth] = selectedDate.split('-').map((part) => Number(part));
-  appendDiv(header, 'oqm-heatmap-month-title', `${selYear}年${selMonth}月`);
+  appendDiv(header, 'omm-heatmap-month-title', `${selYear}年${selMonth}月`);
 
   const isCurrentMonth = selectedDate === todayDate;
-  const todayBtn = appendEl(header, 'button', `oqm-heatmap-today${isCurrentMonth ? ' oqm-heatmap-today--current' : ''}`, '今天');
+  const todayBtn = appendEl(header, 'button', `omm-heatmap-today${isCurrentMonth ? ' omm-heatmap-today--current' : ''}`, '今天');
   todayBtn.type = 'button';
   if (isCurrentMonth) {
     todayBtn.disabled = true;
@@ -616,14 +616,14 @@ function renderHeatmap(container: HTMLElement, heatmap: HeatmapDay[], todayDate:
   }
 
   // ── Single-month calendar grid ──
-  const cal = appendDiv(container, 'oqm-heatmap-calendar');
+  const cal = appendDiv(container, 'omm-heatmap-calendar');
   const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-  for (const wd of weekdays) appendDiv(cal, 'oqm-heatmap-weekday', wd);
+  for (const wd of weekdays) appendDiv(cal, 'omm-heatmap-weekday', wd);
 
   const firstDay = new Date(selYear, selMonth - 1, 1);
   const firstWeekday = firstDay.getDay();
   for (let i = 0; i < firstWeekday; i += 1) {
-    appendDiv(cal, 'oqm-heatmap-empty');
+    appendDiv(cal, 'omm-heatmap-empty');
   }
 
   const daysInMonth = new Date(selYear, selMonth, 0).getDate();
@@ -637,10 +637,10 @@ function renderHeatmap(container: HTMLElement, heatmap: HeatmapDay[], todayDate:
     const isSelected = dateStr === selectedDate;
 
     const cls = [
-      'oqm-heatmap-day',
-      `oqm-heatmap-level-${level}`,
-      isToday ? 'oqm-heatmap-day-today' : '',
-      isSelected ? 'oqm-heatmap-selected' : '',
+      'omm-heatmap-day',
+      `omm-heatmap-level-${level}`,
+      isToday ? 'omm-heatmap-day-today' : '',
+      isSelected ? 'omm-heatmap-selected' : '',
     ].filter(Boolean).join(' ');
 
     const cell = appendEl(cal, 'button', cls, String(d));
@@ -734,26 +734,26 @@ function ensureLightbox(): HTMLElement {
   if (lightbox.overlay) return lightbox.overlay;
 
   const overlay = activeDocument.createElement('div');
-  overlay.className = 'oqm-lightbox';
+  overlay.className = 'omm-lightbox';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-label', '图片查看器');
   overlay.addEventListener('click', closeLightbox);
 
   const backdrop = activeDocument.createElement('div');
-  backdrop.className = 'oqm-lightbox-backdrop';
+  backdrop.className = 'omm-lightbox-backdrop';
   overlay.appendChild(backdrop);
 
   const wrapper = activeDocument.createElement('div');
-  wrapper.className = 'oqm-lightbox-wrapper';
+  wrapper.className = 'omm-lightbox-wrapper';
   overlay.appendChild(wrapper);
 
   const img = activeDocument.createElement('img');
-  img.className = 'oqm-lightbox-img';
+  img.className = 'omm-lightbox-img';
   img.draggable = false;
   wrapper.appendChild(img);
 
   const closeBtn = activeDocument.createElement('button');
-  closeBtn.className = 'oqm-lightbox-close';
+  closeBtn.className = 'omm-lightbox-close';
   closeBtn.type = 'button';
   closeBtn.setAttribute('aria-label', '关闭');
   closeBtn.textContent = '✕';
@@ -764,7 +764,7 @@ function ensureLightbox(): HTMLElement {
   overlay.appendChild(closeBtn);
 
   const hint = activeDocument.createElement('div');
-  hint.className = 'oqm-lightbox-hint';
+  hint.className = 'omm-lightbox-hint';
   hint.textContent = '滚轮缩放 · 拖拽平移 · 双击切换 · 点击空白关闭';
   overlay.appendChild(hint);
 
@@ -864,7 +864,7 @@ function ensureLightbox(): HTMLElement {
 
   // Escape key
   activeDocument.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && lightbox.overlay?.classList.contains('oqm-lightbox--open')) {
+    if (e.key === 'Escape' && lightbox.overlay?.classList.contains('omm-lightbox--open')) {
       closeLightbox();
     }
   });
@@ -877,7 +877,7 @@ let currentLightboxSrc = '';
 function showImageLightbox(src: string, alt: string): void {
   const overlay = ensureLightbox();
   const img = lightbox.imgEl!;
-  if (currentLightboxSrc === src && overlay.classList.contains('oqm-lightbox--open')) {
+  if (currentLightboxSrc === src && overlay.classList.contains('omm-lightbox--open')) {
     closeLightbox();
     return;
   }
@@ -888,7 +888,7 @@ function showImageLightbox(src: string, alt: string): void {
   lightbox.translateX = 0;
   lightbox.translateY = 0;
   img.style.transform = 'scale(1)';
-  overlay.classList.add('oqm-lightbox--open');
+  overlay.classList.add('omm-lightbox--open');
 }
 
 function setZoom(scale: number): void {
@@ -899,7 +899,7 @@ function setZoom(scale: number): void {
 
 function closeLightbox(): void {
   if (lightbox.overlay) {
-    lightbox.overlay.classList.remove('oqm-lightbox--open');
+    lightbox.overlay.classList.remove('omm-lightbox--open');
   }
   currentLightboxSrc = '';
 }

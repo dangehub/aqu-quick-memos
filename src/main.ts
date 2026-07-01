@@ -1,5 +1,5 @@
 import { Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
-import { VIEW_TYPE_QUICK_MEMO } from './constants';
+import { VIEW_TYPE_OH_MY_MEMO } from './constants';
 import { DailyNoteResolver } from './daily-notes/DailyNoteResolver';
 import { getDailyNotesConfig } from './daily-notes/obsidianInternal';
 import { IndexService } from './index/IndexService';
@@ -63,34 +63,34 @@ export default class QuickMemoPlugin extends Plugin {
     const repository = new MarkdownRecordRepository(vault, resolver, parser, this.settings);
     this.index = new IndexService(vault, parser, () => this.settings.parseMode);
 
-    this.registerView(VIEW_TYPE_QUICK_MEMO, (leaf) => new QuickMemoView(leaf, this.settings, repository, this.index, resolver, () => this.saveSettings()));
+    this.registerView(VIEW_TYPE_OH_MY_MEMO, (leaf) => new QuickMemoView(leaf, this.settings, repository, this.index, resolver, () => this.saveSettings()));
 
-    this.addRibbonIcon('notebook-pen', 'Open Quick Memo', () => {
+    this.addRibbonIcon('notebook-pen', 'Open OhMyMemo', () => {
       void this.activateView();
     });
 
     this.addCommand({
-      id: 'open-quick-memo-overview',
+      id: 'open-oh-my-memo',
       name: 'Open overview',
       callback: () => void this.activateView(),
     });
 
     this.addCommand({
-      id: 'rebuild-quick-memo-index',
+      id: 'rebuild-oh-my-memo-index',
       name: 'Rebuild index',
       callback: () => {
-        void this.index.rebuild().then(() => new Notice('Quick Memo 索引已重建'));
+        void this.index.rebuild().then(() => new Notice('OhMyMemo 索引已重建'));
       },
     });
 
     this.addCommand({
-      id: 'backfill-current-day-quick-memo-ids',
+      id: 'backfill-current-day-oh-my-memo-ids',
       name: 'Backfill missing block IDs for today',
       callback: () => {
         void (async () => {
           const count = await repository.backfillMissingIds(localToday());
           await this.index.rebuild();
-          new Notice(`已补全 ${count} 条 Quick Memo ID`);
+          new Notice(`已补全 ${count} 条 OhMyMemo ID`);
         })();
       },
     });
@@ -124,16 +124,16 @@ export default class QuickMemoPlugin extends Plugin {
 
   async activateView(): Promise<void> {
     const { workspace } = this.app;
-    // Reuse an existing Quick Memo leaf if one is open, so we don't reset a leaf
+    // Reuse an existing OhMyMemo leaf if one is open, so we don't reset a leaf
     // the user may have moved.
-    const existing = workspace.getLeavesOfType(VIEW_TYPE_QUICK_MEMO)[0];
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_OH_MY_MEMO)[0];
     if (existing) {
       await workspace.revealLeaf(existing);
       return;
     }
     // Open in the main content area as a tab (works on both desktop & mobile).
     const leaf = workspace.getLeaf('tab');
-    await leaf.setViewState({ type: VIEW_TYPE_QUICK_MEMO, active: true });
+    await leaf.setViewState({ type: VIEW_TYPE_OH_MY_MEMO, active: true });
     await workspace.revealLeaf(leaf);
   }
 
@@ -166,7 +166,7 @@ export default class QuickMemoPlugin extends Plugin {
   }
 
   private refreshOverview(): void {
-    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_QUICK_MEMO)) {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_OH_MY_MEMO)) {
       const view = leaf.view;
       if (view instanceof QuickMemoView) void view.refresh();
     }

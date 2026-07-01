@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
-# Deploy the Obsidian Quick Memo plugin into a vault's plugins folder.
-#
-# Usage:
-#   ./scripts/deploy.sh                       # uses default target below
-#   OQM_TARGET=/path/to/vault/.obsidian/plugins/aqu-quick-memos ./scripts/deploy.sh
-#   ./scripts/deploy.sh /path/to/vault/.obsidian/plugins/aqu-quick-memos
+# Deploy the OhMyMemo plugin into a vault's plugins folder.\n#\n# Usage:\n#   ./scripts/deploy.sh                       # uses default target below\n#   OQM_TARGET=/path/to/vault/.obsidian/plugins/oh-my-memo ./scripts/deploy.sh\n#   ./scripts/deploy.sh /path/to/vault/.obsidian/plugins/oh-my-memo
 #
 # What it does:
 #   1. Runs the production build (typecheck + esbuild).
@@ -19,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Default target vault plugin folder.
-DEFAULT_TARGET="/Users/qudange/Documents/测试用OB/.obsidian/plugins/aqu-quick-memos"
+DEFAULT_TARGET="/Users/qudange/Documents/测试用OB/.obsidian/plugins/oh-my-memo"
 
 # Allow override via first arg or OQM_TARGET env var.
 TARGET="${1:-${OQM_TARGET:-$DEFAULT_TARGET}}"
@@ -58,10 +53,10 @@ for file in "${ARTIFACTS[@]}"; do
 done
 
 echo
-echo "✓ Deployed Quick Memo to:"
+echo "✓ Deployed OhMyMemo to:"
 echo "  $TARGET"
 echo
 echo "Next steps in Obsidian:"
 echo "  1. Open the vault (if not already)."
 echo "  2. Settings → Community plugins → enable 'Quick Memo' (reload if updating)."
-echo "  3. Click the Quick Memo ribbon icon, or run 'Quick Memo: Open Quick Memo overview'."
+echo "  3. Click the OhMyMemo ribbon icon, or run 'OhMyMemo: Open OhMyMemo overview'."

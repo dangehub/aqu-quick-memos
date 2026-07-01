@@ -13,7 +13,7 @@ describe('renderOverview', () => {
 
     renderOverview(root, {
       settings: { ...DEFAULT_SETTINGS, userName: 'Ada', userSlogan: 'Think clearly' },
-      records: [makeRecord('oqm-1', '2026-06-18', '09:00', 'memo', 'idea #a')],
+      records: [makeRecord('omm-1', '2026-06-18', '09:00', 'memo', 'idea #a')],
       tags: [['#a', 1]],
       heatmap: [{ date: '2026-06-18', count: 1 }],
       selectedDate: '2026-06-18',
@@ -29,19 +29,19 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, callbacks);
 
-    expect(root.querySelector('.oqm-layout')).toBeTruthy();
+    expect(root.querySelector('.omm-layout')).toBeTruthy();
     expect(root.textContent).toContain('Ada');
     expect(root.textContent).toContain('Think clearly');
     expect(root.textContent).toContain('idea #a');
     expect(root.textContent).toContain('#a');
-    expect(root.querySelector<HTMLTextAreaElement>('.oqm-input')?.placeholder).toContain('Markdown');
-    expect(root.querySelectorAll('.oqm-heatmap-month-header')).toHaveLength(0);
-    const dayCells = root.querySelectorAll('.oqm-heatmap-day');
+    expect(root.querySelector<HTMLTextAreaElement>('.omm-input')?.placeholder).toContain('Markdown');
+    expect(root.querySelectorAll('.omm-heatmap-month-header')).toHaveLength(0);
+    const dayCells = root.querySelectorAll('.omm-heatmap-day');
     // Single-month view: June 2026 has 30 active days.
     expect(dayCells).toHaveLength(30);
     const recordDay = Array.from(dayCells).find((cell) => cell.getAttribute('title') === '2026-06-18：1 条');
-    expect(recordDay?.classList.contains('oqm-heatmap-level-4')).toBe(true);
-    expect(recordDay?.classList.contains('oqm-heatmap-selected')).toBe(true);
+    expect(recordDay?.classList.contains('omm-heatmap-level-4')).toBe(true);
+    expect(recordDay?.classList.contains('omm-heatmap-selected')).toBe(true);
   });
 
   it('calls onSelectDate when a heatmap day is clicked', () => {
@@ -65,7 +65,7 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, callbacks);
 
-    const day15 = Array.from(root.querySelectorAll('.oqm-heatmap-day')).find((cell) => cell.getAttribute('title')?.startsWith('2026-06-15')) as HTMLButtonElement;
+    const day15 = Array.from(root.querySelectorAll('.omm-heatmap-day')).find((cell) => cell.getAttribute('title')?.startsWith('2026-06-15')) as HTMLButtonElement;
     day15.click();
     expect(callbacks.onSelectDate).toHaveBeenCalledWith('2026-06-15');
   });
@@ -75,7 +75,7 @@ describe('renderOverview', () => {
     const callbacks = makeCallbacks();
     renderOverview(root, {
       settings: DEFAULT_SETTINGS,
-      records: [makeRecord('oqm-9', '2026-06-18', '09:00', 'memo', 'idea #a')],
+      records: [makeRecord('omm-9', '2026-06-18', '09:00', 'memo', 'idea #a')],
       tags: [],
       heatmap: [],
       selectedDate: '2026-06-18',
@@ -91,13 +91,13 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, callbacks);
 
-    expect(root.querySelector('.oqm-record-actions')).toBeNull();
-    expect(root.querySelector('.oqm-record-menu')).toBeNull();
-    const trigger = root.querySelector('.oqm-record-menu-trigger') as HTMLButtonElement;
+    expect(root.querySelector('.omm-record-actions')).toBeNull();
+    expect(root.querySelector('.omm-record-menu')).toBeNull();
+    const trigger = root.querySelector('.omm-record-menu-trigger') as HTMLButtonElement;
     expect(trigger).toBeTruthy();
 
     trigger.click();
-    expect(callbacks.onToggleMenu).toHaveBeenCalledWith('oqm-9');
+    expect(callbacks.onToggleMenu).toHaveBeenCalledWith('omm-9');
   });
 
   it('shows the action menu only for the open record', () => {
@@ -105,13 +105,13 @@ describe('renderOverview', () => {
     const callbacks = makeCallbacks();
     renderOverview(root, {
       settings: DEFAULT_SETTINGS,
-      records: [makeRecord('oqm-9', '2026-06-18', '09:00', 'todo', 'task #t', false)],
+      records: [makeRecord('omm-9', '2026-06-18', '09:00', 'todo', 'task #t', false)],
       tags: [],
       heatmap: [],
       selectedDate: '2026-06-18',
       todayDate: '2026-06-18',
       editingRecordId: undefined,
-      openMenuRecordId: 'oqm-9',
+      openMenuRecordId: 'omm-9',
       filters: {},
       stats: makeStats(),
       warningCount: 0,
@@ -121,7 +121,7 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, callbacks);
 
-    const items = Array.from(root.querySelectorAll('.oqm-record-menu-item')) as HTMLButtonElement[];
+    const items = Array.from(root.querySelectorAll('.omm-record-menu-item')) as HTMLButtonElement[];
     expect(items.map((item) => item.textContent)).toEqual(['标记完成', '编辑', '复制块链接', '打开源文件', '删除']);
     items[0].click();
     expect(callbacks.onToggleTodo).toHaveBeenCalled();
@@ -150,8 +150,8 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, callbacks);
 
-    const tagButton = root.querySelector<HTMLButtonElement>('.oqm-tags button')!;
-    expect(tagButton.classList.contains('oqm-tag-selected')).toBe(true);
+    const tagButton = root.querySelector<HTMLButtonElement>('.omm-tags button')!;
+    expect(tagButton.classList.contains('omm-tag-selected')).toBe(true);
     expect(tagButton.getAttribute('aria-pressed')).toBe('true');
     tagButton.click();
     expect(callbacks.onFilterChange).toHaveBeenCalledWith({ tag: undefined });
@@ -177,7 +177,7 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, makeCallbacks());
 
-    const select = root.querySelector<HTMLSelectElement>('.oqm-type-filter');
+    const select = root.querySelector<HTMLSelectElement>('.omm-type-filter');
     expect(select).toBeTruthy();
     const options = Array.from(select!.querySelectorAll('option'));
     expect(options).toHaveLength(5);
@@ -205,7 +205,7 @@ describe('renderOverview', () => {
       recordsTotal: 0,
       viewMode: 'all',
     }, makeCallbacks());
-    expect(doneRoot.querySelector<HTMLSelectElement>('.oqm-type-filter')?.value).toBe('todo-done');
+    expect(doneRoot.querySelector<HTMLSelectElement>('.omm-type-filter')?.value).toBe('todo-done');
 
     const openRoot = document.createElement('div');
     renderOverview(openRoot, {
@@ -224,7 +224,7 @@ describe('renderOverview', () => {
       recordsTotal: 0,
       viewMode: 'all',
     }, makeCallbacks());
-    expect(openRoot.querySelector<HTMLSelectElement>('.oqm-type-filter')?.value).toBe('todo-open');
+    expect(openRoot.querySelector<HTMLSelectElement>('.omm-type-filter')?.value).toBe('todo-open');
   });
 
   it('dispatches composite filters with todoStatus and clears it for plain types', () => {
@@ -248,7 +248,7 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, callbacks);
 
-    const select = root.querySelector<HTMLSelectElement>('.oqm-type-filter')!;
+    const select = root.querySelector<HTMLSelectElement>('.omm-type-filter')!;
 
     select.value = 'todo-done';
     select.dispatchEvent(new Event('change'));
@@ -283,14 +283,14 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, makeCallbacks());
 
-    const stats = root.querySelector('.oqm-stats');
+    const stats = root.querySelector('.omm-stats');
     expect(stats).toBeTruthy();
     expect(stats!.textContent).toContain('3');
     expect(stats!.textContent).toContain('10');
     expect(stats!.textContent).toContain('闪念');
     expect(stats!.textContent).toContain('待办');
     expect(stats!.textContent).toContain('2/3');
-    const bar = stats!.querySelector<HTMLDivElement>('.oqm-stats-ratio-bar > div');
+    const bar = stats!.querySelector<HTMLDivElement>('.omm-stats-ratio-bar > div');
     expect(bar).toBeTruthy();
     expect(bar!.style.width).toBe('66.7%');
   });
@@ -316,7 +316,7 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, callbacks);
 
-    const todayLink = root.querySelector<HTMLButtonElement>('.oqm-heatmap-today');
+    const todayLink = root.querySelector<HTMLButtonElement>('.omm-heatmap-today');
     expect(todayLink).toBeTruthy();
     todayLink!.click();
     expect(callbacks.onSelectDate).toHaveBeenCalledWith('2026-06-18');
@@ -342,10 +342,10 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, makeCallbacks());
 
-    const todayBtn = root.querySelector<HTMLButtonElement>('.oqm-heatmap-today');
+    const todayBtn = root.querySelector<HTMLButtonElement>('.omm-heatmap-today');
     expect(todayBtn).toBeTruthy();
     expect(todayBtn!.disabled).toBe(true);
-    expect(todayBtn!.classList.contains('oqm-heatmap-today--current')).toBe(true);
+    expect(todayBtn!.classList.contains('omm-heatmap-today--current')).toBe(true);
   });
 
   it('shows the selected date next to the composer type selector', () => {
@@ -367,7 +367,7 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, makeCallbacks());
 
-    expect(root.querySelector('.oqm-composer-date')?.textContent).toBe('2026-06-21');
+    expect(root.querySelector('.omm-composer-date')?.textContent).toBe('2026-06-21');
   });
 
   it('groups records by date when a tag or text filter spans multiple dates', () => {
@@ -393,10 +393,10 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, makeCallbacks());
 
-    const headingRow = root.querySelector('.oqm-heading-row');
+    const headingRow = root.querySelector('.omm-heading-row');
     expect(headingRow?.querySelector('h3')?.textContent).toBe('筛选结果');
-    expect(headingRow?.querySelector('.oqm-sort-toggle')).toBeTruthy();
-    const groupHeadings = Array.from(root.querySelectorAll('.oqm-date-group-heading')).map((el) => el.textContent);
+    expect(headingRow?.querySelector('.omm-sort-toggle')).toBeTruthy();
+    const groupHeadings = Array.from(root.querySelectorAll('.omm-date-group-heading')).map((el) => el.textContent);
     expect(groupHeadings).toEqual(['2026-06-18', '2026-06-17']);
   });
 });

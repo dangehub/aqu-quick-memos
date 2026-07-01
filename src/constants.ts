@@ -1,2 +1,2 @@
-export const VIEW_TYPE_QUICK_MEMO = 'quick-memo-overview';
+export const VIEW_TYPE_OH_MY_MEMO = 'oh-my-memo-overview';
 export const BLOCK_ID_PREFIX = 'oqm';

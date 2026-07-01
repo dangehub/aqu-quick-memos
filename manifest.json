@@ -1,6 +1,6 @@
 {
-  "id": "aqu-quick-memos",
-  "name": "Quick Memo",
+  "id": "oh-my-memo",
+  "name": "OhMyMemo",
   "version": "0.5.0",
   "minAppVersion": "1.7.2",
   "description": "Markdown-native daily quick records, flash thoughts, todos, history, filters, and heatmap.",

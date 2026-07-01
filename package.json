@@ -1,5 +1,5 @@
 {
-  "name": "aqu-quick-memos",
+  "name": "oh-my-memo",
   "version": "0.5.0",
   "description": "Markdown-native Obsidian quick memo plugin",
   "main": "main.js",

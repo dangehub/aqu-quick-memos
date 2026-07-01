@@ -1,5 +1,5 @@
 import { App, Component, ItemView, MarkdownRenderer, Menu, Modal, Notice, Platform, Setting, WorkspaceLeaf } from 'obsidian';
-import { VIEW_TYPE_QUICK_MEMO } from '../constants';
+import { VIEW_TYPE_OH_MY_MEMO } from '../constants';
 import type { QuickMemoRecord, QuickMemoSettings, QuickMemoType } from '../types';
 import type { IndexService } from '../index/IndexService';
 import type { MarkdownRecordRepository } from '../markdown/MarkdownRecordRepository';
@@ -42,11 +42,11 @@ export class QuickMemoView extends ItemView {
   }
 
   getViewType(): string {
-    return VIEW_TYPE_QUICK_MEMO;
+    return VIEW_TYPE_OH_MY_MEMO;
   }
 
   getDisplayText(): string {
-    return 'Quick Memo';
+    return 'OhMyMemo';
   }
 
   async onOpen(): Promise<void> {
@@ -80,7 +80,7 @@ export class QuickMemoView extends ItemView {
   private handleOutsideInteraction = (event: PointerEvent): void => {
     if (this.openMenuRecordId === undefined) return;
     const target = event.target;
-    if (target instanceof Element && (target.closest('.oqm-record-menu') || target.closest('.oqm-record-menu-trigger'))) {
+    if (target instanceof Element && (target.closest('.omm-record-menu') || target.closest('.omm-record-menu-trigger'))) {
       return;
     }
     this.openMenuRecordId = undefined;
@@ -124,11 +124,11 @@ export class QuickMemoView extends ItemView {
   private showFatalError(error: unknown): void {
     const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     this.contentEl.empty();
-    this.contentEl.addClass('oqm-root');
-    const box = this.contentEl.createDiv({ cls: 'oqm-fatal-error' });
-    box.createEl('h3', { text: 'Quick Memo 打开失败' });
+    this.contentEl.addClass('omm-root');
+    const box = this.contentEl.createDiv({ cls: 'omm-fatal-error' });
+    box.createEl('h3', { text: 'OhMyMemo 打开失败' });
     box.createEl('p', { text: message });
-    new Notice(`Quick Memo 打开失败：${message}`);
+    new Notice(`OhMyMemo 打开失败：${message}`);
   }
 
   private render(): void {
@@ -296,13 +296,13 @@ export class QuickMemoView extends ItemView {
     // middle-of-list cards don't jump.
     if (this.openMenuRecordId !== undefined) {
       window.requestAnimationFrame(() => {
-        const menu = this.contentEl.querySelector<HTMLElement>('.oqm-record-menu');
+        const menu = this.contentEl.querySelector<HTMLElement>('.omm-record-menu');
         menu?.scrollIntoView({ block: 'nearest' });
       });
     }
 
     // Attach paste handler for image attachments
-    const input = this.contentEl.querySelector<HTMLTextAreaElement>('.oqm-input');
+    const input = this.contentEl.querySelector<HTMLTextAreaElement>('.omm-input');
     if (input) input.addEventListener('paste', this.handlePaste);
   }
 
@@ -321,7 +321,7 @@ export class QuickMemoView extends ItemView {
           this.insertAtCursor(textarea, link);
         } catch (err) {
           new Notice('附件保存失败');
-          console.error('Quick Memo attachment save failed:', err);
+          console.error('OhMyMemo attachment save failed:', err);
         }
       }
     }
@@ -451,7 +451,7 @@ export class QuickMemoView extends ItemView {
   }
 
   private async deleteTag(tag: string): Promise<void> {
-    const confirmed = await confirmDialog(this.app, '删除标签', `从所有 Quick Memo 记录中移除标签 ${tag}？\n此操作会修改包含该标签的 Daily Note 文件。`);
+    const confirmed = await confirmDialog(this.app, '删除标签', `从所有 OhMyMemo 记录中移除标签 ${tag}？\n此操作会修改包含该标签的 Daily Note 文件。`);
     if (!confirmed) return;
     const count = await this.repository.removeTag(tag);
     await this.index.rebuild();
@@ -500,7 +500,7 @@ export class QuickMemoView extends ItemView {
       new Notice('该记录缺少块 ID，请先补全 ID 后再删除。');
       return;
     }
-    const confirmed = await confirmDialog(this.app, '删除记录', '删除这条 Quick Memo？此操作会修改 Daily Note 文件。');
+    const confirmed = await confirmDialog(this.app, '删除记录', '删除这条 OhMyMemo？此操作会修改 Daily Note 文件。');
     if (!confirmed) return;
     await this.repository.deleteRecord(record.id);
     await this.index.rebuild();
@@ -577,9 +577,9 @@ function captureFocusRestore(scope: HTMLElement): (() => void) | undefined {
   const el = activeDocument.activeElement;
   if (!(el instanceof HTMLInputElement) && !(el instanceof HTMLTextAreaElement)) return undefined;
   if (!scope.contains(el)) return undefined;
-  const selector = el.classList.contains('oqm-search') ? '.oqm-search'
-    : el.classList.contains('oqm-edit-input') ? '.oqm-edit-input'
-    : el.classList.contains('oqm-input') ? '.oqm-input'
+  const selector = el.classList.contains('omm-search') ? '.omm-search'
+    : el.classList.contains('omm-edit-input') ? '.omm-edit-input'
+    : el.classList.contains('omm-input') ? '.omm-input'
     : '';
   if (!selector) return undefined;
   const start = el.selectionStart ?? el.value.length;
