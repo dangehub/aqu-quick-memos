@@ -869,7 +869,7 @@
     overflow-y: auto;
     transform: translateX(0);
     transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
-    padding-top: max(48px, env(safe-area-inset-top, 0px));
+    padding-top: max(80px, env(safe-area-inset-top, 0px));
   }
 
   /* Collapsed: slide sidebar off-screen left */
