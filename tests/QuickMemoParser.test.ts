@@ -135,4 +135,17 @@ describe('QuickMemoParser', () => {
       tags: ['#tag'],
     });
   });
+
+  it('parses multi-line records with blockquote/callout continuation', () => {
+    const markdown = '## Quick Memo\n\n- 20:47\n> [!microblog] ![](https://example.com/avatar.png) text · 20:47\n> 你好\n';
+    const result = parser.parseFile('test.md', '2026-06-30', markdown);
+    expect(result.records).toHaveLength(1);
+    expect(result.records[0]).toMatchObject({
+      type: 'memo',
+      time: '20:47',
+      content: '> [!microblog] ![](https://example.com/avatar.png) text · 20:47',
+      body: '> 你好',
+      hasStableId: false,
+    });
+  });
 });
