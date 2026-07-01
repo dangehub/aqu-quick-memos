@@ -22,6 +22,10 @@ describe('renderOverview', () => {
       onFilterChange: vi.fn(),
       onToggleMenu: vi.fn(),
       onTagContext: vi.fn(),
+      onToggleSidebar: vi.fn(),
+      onToggleSort: vi.fn(),
+      onLoadMore: vi.fn(),
+      onShowAll: vi.fn(),
     };
 
     renderOverview(root, {
@@ -35,6 +39,11 @@ describe('renderOverview', () => {
       openMenuRecordId: undefined,
       filters: {},
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 1,
+      viewMode: 'all',
     }, callbacks);
 
     expect(root.querySelector('.oqm-layout')).toBeTruthy();
@@ -65,6 +74,11 @@ describe('renderOverview', () => {
       openMenuRecordId: undefined,
       filters: {},
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 0,
+      viewMode: 'all',
     }, callbacks);
 
     const day15 = Array.from(root.querySelectorAll('.oqm-heatmap-day')).find((cell) => cell.getAttribute('title')?.startsWith('2026-06-15')) as HTMLButtonElement;
@@ -86,6 +100,11 @@ describe('renderOverview', () => {
       openMenuRecordId: undefined,
       filters: {},
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 1,
+      viewMode: 'all',
     }, callbacks);
 
     expect(root.querySelector('.oqm-record-actions')).toBeNull();
@@ -111,6 +130,11 @@ describe('renderOverview', () => {
       openMenuRecordId: 'oqm-9',
       filters: {},
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 1,
+      viewMode: 'all',
     }, callbacks);
 
     const items = Array.from(root.querySelectorAll('.oqm-record-menu-item')) as HTMLButtonElement[];
@@ -135,6 +159,11 @@ describe('renderOverview', () => {
       openMenuRecordId: undefined,
       filters: { tag: '#a' },
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 0,
+      viewMode: 'all',
     }, callbacks);
 
     const tagButton = root.querySelector<HTMLButtonElement>('.oqm-tags button')!;
@@ -157,6 +186,11 @@ describe('renderOverview', () => {
       openMenuRecordId: undefined,
       filters: {},
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 0,
+      viewMode: 'all',
     }, makeCallbacks());
 
     const select = root.querySelector<HTMLSelectElement>('.oqm-type-filter');
@@ -181,6 +215,11 @@ describe('renderOverview', () => {
       editingRecordId: undefined,
       filters: { type: 'todo', todoStatus: 'completed' },
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 0,
+      viewMode: 'all',
     }, makeCallbacks());
     expect(doneRoot.querySelector<HTMLSelectElement>('.oqm-type-filter')?.value).toBe('todo-done');
 
@@ -195,6 +234,11 @@ describe('renderOverview', () => {
       editingRecordId: undefined,
       filters: { type: 'todo', todoStatus: 'open' },
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 0,
+      viewMode: 'all',
     }, makeCallbacks());
     expect(openRoot.querySelector<HTMLSelectElement>('.oqm-type-filter')?.value).toBe('todo-open');
   });
@@ -213,6 +257,11 @@ describe('renderOverview', () => {
       openMenuRecordId: undefined,
       filters: {},
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 0,
+      viewMode: 'all',
     }, callbacks);
 
     const select = root.querySelector<HTMLSelectElement>('.oqm-type-filter')!;
@@ -243,6 +292,11 @@ describe('renderOverview', () => {
       openMenuRecordId: undefined,
       filters: {},
       stats: makeStats({ days: 3, total: 10, memo: 7, todo: 3, todoDone: 2 }),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 0,
+      viewMode: 'all',
     }, makeCallbacks());
 
     const stats = root.querySelector('.oqm-stats');
@@ -271,6 +325,11 @@ describe('renderOverview', () => {
       openMenuRecordId: undefined,
       filters: {},
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 0,
+      viewMode: 'all',
     }, callbacks);
 
     const todayLink = root.querySelector<HTMLButtonElement>('.oqm-heatmap-today');
@@ -292,6 +351,11 @@ describe('renderOverview', () => {
       openMenuRecordId: undefined,
       filters: {},
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 0,
+      viewMode: 'all',
     }, makeCallbacks());
 
     expect(root.querySelector('.oqm-heatmap-today')).toBeNull();
@@ -309,6 +373,11 @@ describe('renderOverview', () => {
       editingRecordId: undefined,
       filters: {},
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 0,
+      viewMode: 'all',
     }, makeCallbacks());
 
     expect(root.querySelector('.oqm-composer-date')?.textContent).toBe('2026-06-21');
@@ -330,9 +399,16 @@ describe('renderOverview', () => {
       openMenuRecordId: undefined,
       filters: { tag: '#a' },
       stats: makeStats(),
+      warningCount: 0,
+      sortDirection: 'desc',
+      sidebarCollapsed: false,
+      recordsTotal: 2,
+      viewMode: 'all',
     }, makeCallbacks());
 
-    expect(root.querySelector('.oqm-main h3')?.textContent).toBe('筛选结果');
+    const headingRow = root.querySelector('.oqm-heading-row');
+    expect(headingRow?.querySelector('h3')?.textContent).toBe('筛选结果');
+    expect(headingRow?.querySelector('.oqm-sort-toggle')).toBeTruthy();
     const groupHeadings = Array.from(root.querySelectorAll('.oqm-date-group-heading')).map((el) => el.textContent);
     expect(groupHeadings).toEqual(['2026-06-18', '2026-06-17']);
   });
@@ -352,6 +428,10 @@ function makeCallbacks() {
     onFilterChange: vi.fn(),
     onToggleMenu: vi.fn(),
     onTagContext: vi.fn(),
+    onToggleSidebar: vi.fn(),
+    onToggleSort: vi.fn(),
+    onLoadMore: vi.fn(),
+    onShowAll: vi.fn(),
   };
 }
 

@@ -37,6 +37,13 @@ export interface OverviewState {
   filters: ViewFilters;
   stats: OverviewStats;
   markdown?: MarkdownApi;
+  warningCount: number;
+  sortDirection: 'asc' | 'desc';
+  sidebarCollapsed: boolean;
+  /** Total filtered records (before slicing for lazy load). */
+  recordsTotal: number;
+  /** View mode: 'all' or 'date'. */
+  viewMode: 'all' | 'date';
 }
 
 export interface OverviewCallbacks {
@@ -52,6 +59,10 @@ export interface OverviewCallbacks {
   onFilterChange(filters: Partial<ViewFilters>): void;
   onToggleMenu(recordId: string): void;
   onTagContext(tag: string, event: MouseEvent): void;
+  onToggleSidebar(): void;
+  onToggleSort(): void;
+  onLoadMore(): void;
+  onShowAll(): void;
 }
 
 /** Type filter option values, including composite todo-status filters. */
@@ -68,6 +79,8 @@ const TYPE_FILTER_OPTIONS: ReadonlyArray<readonly [TypeFilterValue, string]> = [
 export function renderOverview(root: HTMLElement, state: OverviewState, callbacks: OverviewCallbacks): void {
   root.innerHTML = '';
   root.classList.add('oqm-root');
+  // Always toggle based on state — class may be stale from previous renders
+  root.classList.toggle('oqm-sidebar-collapsed', state.sidebarCollapsed);
 
   const markdown = state.markdown ?? TEXT_MARKDOWN;
   const layout = appendDiv(root, 'oqm-layout');
@@ -85,6 +98,13 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
   const profileText = appendDiv(profile, 'oqm-profile-text');
   appendEl(profileText, 'h2', '', state.settings.userName);
   appendEl(profileText, 'p', '', state.settings.userSlogan);
+
+  // Collapse toggle button in the profile area
+  const collapseBtn = appendEl(profile, 'button', 'oqm-sidebar-collapse-btn');
+  collapseBtn.type = 'button';
+  collapseBtn.textContent = state.sidebarCollapsed ? '☰' : '✕';
+  collapseBtn.title = state.sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏';
+  collapseBtn.onclick = () => callbacks.onToggleSidebar();
 
   // Heatmap sits between the profile/slogan and the filter controls.
   renderHeatmap(container, state.heatmap, state.todayDate, state.selectedDate, callbacks);
@@ -143,6 +163,12 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
       };
     }
   }
+
+  // Warnings: show a gentle badge at the bottom when the parser found incompatible content
+  if (state.warningCount > 0) {
+    const warnDiv = appendDiv(container, 'oqm-warnings');
+    appendDiv(warnDiv, '', `${state.warningCount} 条记录格式与本插件不兼容，未显示。`);
+  }
 }
 
 function renderMain(container: HTMLElement, state: OverviewState, callbacks: OverviewCallbacks, markdown: MarkdownApi): void {
@@ -178,12 +204,49 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
   // Tag / keyword filters are vault-wide: group the results by date instead of
   // showing a single-day timeline. Otherwise it's the normal single-day view.
   const crossDate = Boolean(state.filters.tag) || Boolean(state.filters.text?.trim());
+
+  // Sort direction toggle + date heading row
+  const headingRow = appendDiv(container, 'oqm-heading-row');
+  if (crossDate || state.viewMode === 'all') {
+    if (crossDate) {
+      appendEl(headingRow, 'h3', '', '筛选结果');
+    } else {
+      appendEl(headingRow, 'h3', '', `全部记录 · ${state.recordsTotal} 条`);
+    }
+    const sortBtn = appendEl(headingRow, 'button', 'oqm-sort-toggle');
+    sortBtn.type = 'button';
+    sortBtn.textContent = state.sortDirection === 'asc' ? '↑ 升序' : '↓ 降序';
+    sortBtn.title = state.sortDirection === 'asc' ? '切换为降序' : '切换为升序';
+    sortBtn.onclick = () => callbacks.onToggleSort();
+    renderCrossDateTimeline(container, state, callbacks, markdown);
+    if (state.records.length < state.recordsTotal) {
+      const loadMoreDiv = appendDiv(container, 'oqm-load-more');
+      const loadBtn = appendEl(loadMoreDiv, 'button', 'oqm-load-more-btn');
+      loadBtn.type = 'button';
+      loadBtn.textContent = `加载更多（已显示 ${state.records.length} / ${state.recordsTotal}）`;
+      loadBtn.onclick = () => callbacks.onLoadMore();
+    }
+    return;
+  }
+
+  // date mode: single-day timeline
+  appendEl(headingRow, 'h3', '', `${state.selectedDate} 时间线`);
+  const showAllBtn = appendEl(headingRow, 'button', 'oqm-show-all');
+  showAllBtn.type = 'button';
+  showAllBtn.textContent = '显示全部';
+  showAllBtn.title = '回到全部记录视图';
+  showAllBtn.onclick = () => callbacks.onShowAll();
+  const sortBtn2 = appendEl(headingRow, 'button', 'oqm-sort-toggle');
+  sortBtn2.type = 'button';
+  sortBtn2.textContent = state.sortDirection === 'asc' ? '↑ 升序' : '↓ 降序';
+  sortBtn2.title = state.sortDirection === 'asc' ? '切换为降序' : '切换为升序';
+  sortBtn2.onclick = () => callbacks.onToggleSort();
+
   if (crossDate) {
     renderCrossDateTimeline(container, state, callbacks, markdown);
     return;
   }
 
-  appendEl(container, 'h3', '', `${state.selectedDate} 时间线`);
   const list = appendDiv(container, 'oqm-record-list');
   if (state.records.length === 0) {
     appendDiv(list, 'oqm-empty', '这一天还没有 Quick Memo。');
@@ -193,6 +256,15 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
   for (const record of state.records) {
     const key = recordKey(record);
     renderRecord(list, record, state.editingRecordId === key, state.openMenuRecordId === key, callbacks, markdown);
+  }
+
+  // Lazy load: show "load more" button when there are more records
+  if (state.records.length < state.recordsTotal) {
+    const loadMoreDiv = appendDiv(container, 'oqm-load-more');
+    const loadBtn = appendEl(loadMoreDiv, 'button', 'oqm-load-more-btn');
+    loadBtn.type = 'button';
+    loadBtn.textContent = `加载更多（已显示 ${state.records.length} / ${state.recordsTotal}）`;
+    loadBtn.onclick = () => callbacks.onLoadMore();
   }
 }
 

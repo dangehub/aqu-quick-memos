@@ -701,7 +701,7 @@
 .oqm-root .oqm-heatmap-day.oqm-heatmap-level-3 { background: rgba(var(--oqm-heatmap-green-rgb), 0.78); background-color: rgba(var(--oqm-heatmap-green-rgb), 0.78); }
 .oqm-root .oqm-heatmap-day.oqm-heatmap-level-4 { background: rgb(var(--oqm-heatmap-green-rgb)); background-color: rgb(var(--oqm-heatmap-green-rgb)); }
 
-/* ---------- Shared focus ---------- */
+/* Collapse button inside the profile area. */\n.oqm-sidebar-collapse-btn {\n  flex: 0 0 auto;\n  width: 28px;\n  height: 28px;\n  padding: 0;\n  border: 1px solid var(--background-modifier-border);\n  border-radius: var(--radius-s);\n  background: var(--background-secondary);\n  color: var(--text-muted);\n  font-size: 14px;\n  line-height: 1;\n  cursor: pointer;\n  margin-left: auto;\n  transition: background-color 160ms ease, color 160ms ease;\n}\n\n.oqm-sidebar-collapse-btn:hover {\n  background: var(--background-modifier-hover);\n  color: var(--text-normal);\n}\n\n/* When sidebar is collapsed, hide everything in the sidebar except the profile. */\n.oqm-sidebar-collapsed .oqm-sidebar {\n  display: none;\n}\n\n.oqm-sidebar-collapsed .oqm-layout {\n  grid-template-columns: 1fr;\n}\n\n/* Sort toggle button in the heading row */\n.oqm-heading-row {\n  display: flex;\n  align-items: center;\n  gap: var(--size-2-3);\n  margin-bottom: var(--size-4-3);\n}\n\n.oqm-heading-row h3 {\n  margin: 0;\n  flex: 1 1 auto;\n}\n\n.oqm-sort-toggle {\n  min-height: 28px;\n  padding: 0 10px;\n  border: 1px solid var(--background-modifier-border);\n  border-radius: var(--radius-s);\n  background: var(--background-secondary);\n  color: var(--text-muted);\n  font-size: var(--font-ui-smaller);\n  cursor: pointer;\n  white-space: nowrap;\n  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;\n}\n\n.oqm-sort-toggle:hover {\n  background: var(--background-modifier-hover);\n  color: var(--text-normal);\n  border-color: var(--interactive-accent);\n}\n\n/* Warning badge at the bottom of the sidebar */\n.oqm-warnings {\n  margin-top: var(--size-4-3);\n  padding: var(--size-2-2) var(--size-2-3);\n  border: 1px solid var(--background-modifier-border);\n  border-radius: var(--radius-s);\n  background: var(--background-secondary);\n  color: var(--text-muted);\n  font-size: var(--font-ui-smaller);\n  line-height: var(--line-height-normal);\n}\n\n/* ---------- Shared focus ---------- */
 
 .oqm-tags button:focus-visible,
 .oqm-record-actions button:focus-visible,
@@ -733,4 +733,48 @@
   .oqm-root *::after {
     transition: none;
   }
+}
+
+/* "Show all" button — returns from date-filtered to full timeline */
+.oqm-show-all {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--interactive-accent);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--interactive-accent);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.oqm-show-all:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+/* Lazy-load button at the bottom of the record list */
+.oqm-load-more {
+  display: flex;
+  justify-content: center;
+  padding: var(--size-4-3) 0;
+}
+
+.oqm-load-more-btn {
+  min-height: 34px;
+  padding: 0 24px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.oqm-load-more-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
 }
