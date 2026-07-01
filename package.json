@@ -1,6 +1,6 @@
 {
   "name": "aqu-quick-memos",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Markdown-native Obsidian quick memo plugin",
   "main": "main.js",
   "scripts": {

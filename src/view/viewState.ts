@@ -5,6 +5,10 @@ export type TodoStatusFilter = 'all' | 'completed' | 'open';
 
 export interface ViewFilters {
   selectedDate?: string;
+  /** Start of a date range filter (inclusive). Works with dateEnd. */
+  dateStart?: string;
+  /** End of a date range filter (inclusive). Works with dateStart. */
+  dateEnd?: string;
   type?: TypeFilter;
   tag?: string;
   text?: string;
@@ -14,10 +18,13 @@ export interface ViewFilters {
 export function filterRecordsForView(records: QuickMemoRecord[], filters: ViewFilters): QuickMemoRecord[] {
   const text = filters.text?.trim().toLowerCase();
   // Tag and keyword filters are vault-wide searches: they ignore the selected
-  // date so the user sees every matching record across all days, grouped later.
+  // date / date range so the user sees every matching record across all days.
   const crossDate = Boolean(filters.tag) || Boolean(text);
   return records.filter((record) => {
-    if (!crossDate && filters.selectedDate && record.date !== filters.selectedDate) return false;
+    if (!crossDate) {
+      if (filters.selectedDate && record.date !== filters.selectedDate) return false;
+      if (filters.dateStart && filters.dateEnd && (record.date < filters.dateStart || record.date > filters.dateEnd)) return false;
+    }
     if (filters.type && filters.type !== 'all' && record.type !== filters.type) return false;
     if (filters.tag && !record.tags.includes(filters.tag)) return false;
     if (filters.todoStatus === 'completed' && record.completed !== true) return false;

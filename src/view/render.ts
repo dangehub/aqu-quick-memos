@@ -42,8 +42,12 @@ export interface OverviewState {
   sidebarCollapsed: boolean;
   /** Total filtered records (before slicing for lazy load). */
   recordsTotal: number;
-  /** View mode: 'all' or 'date'. */
-  viewMode: 'all' | 'date';
+  /** View mode: 'all', 'date' (single day), or 'range' (date range). */
+  viewMode: 'all' | 'date' | 'range';
+  /** Start of the date range (inclusive). Only set when viewMode === 'range'. */
+  dateRangeStart?: string;
+  /** End of the date range (inclusive). Only set when viewMode === 'range'. */
+  dateRangeEnd?: string;
 }
 
 export interface OverviewCallbacks {
@@ -63,6 +67,11 @@ export interface OverviewCallbacks {
   onToggleSort(): void;
   onLoadMore(): void;
   onShowAll(): void;
+  /** Apply a date range filter (inclusive). */
+  onApplyDateRange(start: string, end: string): void;
+  onHeatmapPrevMonth(): void;
+  onHeatmapNextMonth(): void;
+  onAttachFile(file: File, textarea: HTMLTextAreaElement): void;
 }
 
 /** Type filter option values, including composite todo-status filters. */
@@ -70,7 +79,7 @@ type TypeFilterValue = TypeFilter | 'todo-done' | 'todo-open';
 
 const TYPE_FILTER_OPTIONS: ReadonlyArray<readonly [TypeFilterValue, string]> = [
   ['all', '全部'],
-  ['memo', '普通'],
+  ['memo', '闪念'],
   ['todo', '待办'],
   ['todo-done', '已完成待办'],
   ['todo-open', '未完成待办'],
@@ -113,6 +122,42 @@ function renderSidebar(container: HTMLElement, state: OverviewState, callbacks: 
 
   // Heatmap sits between the profile/slogan and the filter controls.
   renderHeatmap(container, state.heatmap, state.todayDate, state.selectedDate, callbacks);
+
+  // Date jumper — pick any arbitrary date (not limited to heatmap window).
+  const jumper = appendDiv(container, 'oqm-date-jumper');
+  appendDiv(jumper, 'oqm-section-label', '跳转到日期');
+  const dateInput = appendEl(jumper, 'input', 'oqm-date-jumper-input');
+  dateInput.type = 'date';
+  dateInput.value = state.selectedDate;
+  dateInput.setAttribute('aria-label', '选择日期跳转');
+  dateInput.onchange = () => {
+    if (dateInput.value) callbacks.onSelectDate(dateInput.value);
+  };
+
+  // Date range filter — two date inputs + apply button
+  const rangeSection = appendDiv(container, 'oqm-date-range');
+  appendDiv(rangeSection, 'oqm-section-label', '日期范围筛选');
+  const rangeInputs = appendDiv(rangeSection, 'oqm-date-range-inputs');
+  const rangeStart = appendEl(rangeInputs, 'input', 'oqm-date-range-start');
+  rangeStart.type = 'date';
+  rangeStart.setAttribute('aria-label', '开始日期');
+  const rangeSep = appendEl(rangeInputs, 'span', 'oqm-date-range-sep', '至');
+  const rangeEnd = appendEl(rangeInputs, 'input', 'oqm-date-range-end');
+  rangeEnd.type = 'date';
+  rangeEnd.setAttribute('aria-label', '结束日期');
+  const applyBtn = appendEl(rangeSection, 'button', 'oqm-date-range-apply', '筛选');
+  applyBtn.type = 'button';
+  applyBtn.onclick = () => {
+    if (rangeStart.value && rangeEnd.value) {
+      const start = rangeStart.value;
+      const end = rangeEnd.value;
+      // Ensure start <= end
+      if (start <= end) {
+        callbacks.onApplyDateRange(start, end);
+      }
+    }
+  };
+
   renderStats(container, state.stats);
 
   appendDiv(container, 'oqm-section-label', '筛选');
@@ -194,6 +239,8 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
     titleSpan.textContent = '筛选结果';
   } else if (state.viewMode === 'all') {
     titleSpan.textContent = `全部记录 · ${state.recordsTotal} 条`;
+  } else if (state.viewMode === 'range') {
+    titleSpan.textContent = `${state.dateRangeStart} 至 ${state.dateRangeEnd}`;
   } else {
     titleSpan.textContent = `${state.selectedDate} 时间线`;
   }
@@ -217,7 +264,25 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
     appendOption(type, label, value);
   }
   type.value = state.inputMode ?? 'memo';
-  appendDiv(row, 'oqm-composer-date', state.selectedDate);
+  const dateEl = appendDiv(row, 'oqm-composer-date', state.selectedDate);
+  // On mobile, tapping the date opens the sidebar drawer so the user can
+  // use the heatmap to jump to a different date.
+  dateEl.addEventListener('click', () => callbacks.onToggleSidebar());
+
+  // Hidden file input + attach button for inserting images on mobile.
+  const attachInput = appendEl(composer, 'input', 'oqm-attach-input');
+  attachInput.type = 'file';
+  attachInput.accept = 'image/*';
+  attachInput.style.display = 'none';
+  attachInput.onchange = () => {
+    const file = attachInput.files?.[0];
+    if (file) callbacks.onAttachFile(file, input);
+    attachInput.value = '';
+  };
+  const attachBtn = appendEl(row, 'button', 'oqm-attach-btn', '📎');
+  attachBtn.type = 'button';
+  attachBtn.title = '插入图片';
+  attachBtn.onclick = () => attachInput.click();
 
   // Plain markdown source editor. (The cards below render the markdown; the
   // composer itself stays a source textarea.)
@@ -240,6 +305,23 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
   // showing a single-day timeline. Otherwise it's the normal single-day view.
   const crossDate = Boolean(state.filters.tag) || Boolean(state.filters.text?.trim());
 
+  // ── Filter chip: show the active date/range filter with a clear button ──
+  if (state.viewMode === 'date' || state.viewMode === 'range') {
+    const chipRow = appendDiv(container, 'oqm-filter-chip-row');
+    const chip = appendDiv(chipRow, 'oqm-filter-chip');
+    let label: string;
+    if (state.viewMode === 'date') {
+      label = state.selectedDate;
+    } else {
+      label = `${state.dateRangeStart} 至 ${state.dateRangeEnd}`;
+    }
+    const chipText = appendEl(chip, 'span', 'oqm-filter-chip-text', label);
+    const clearBtn = appendEl(chip, 'button', 'oqm-filter-chip-clear', '✕');
+    clearBtn.type = 'button';
+    clearBtn.title = '清除日期筛选';
+    clearBtn.onclick = () => callbacks.onShowAll();
+  }
+
   // Sort direction toggle + date heading row
   const headingRow = appendDiv(container, 'oqm-heading-row');
   if (crossDate || state.viewMode === 'all') {
@@ -260,17 +342,16 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
       loadBtn.type = 'button';
       loadBtn.textContent = `加载更多（已显示 ${state.records.length} / ${state.recordsTotal}）`;
       loadBtn.onclick = () => callbacks.onLoadMore();
+      observeLoadMore(loadBtn, () => callbacks.onLoadMore());
     }
     return;
   }
 
-  // date mode: single-day timeline
-  appendEl(headingRow, 'h3', '', `${state.selectedDate} 时间线`);
-  const showAllBtn = appendEl(headingRow, 'button', 'oqm-show-all');
-  showAllBtn.type = 'button';
-  showAllBtn.textContent = '显示全部';
-  showAllBtn.title = '回到全部记录视图';
-  showAllBtn.onclick = () => callbacks.onShowAll();
+  // date / range mode: single-day or date-range timeline
+  const dateLabel = state.viewMode === 'date'
+    ? `${state.selectedDate} 时间线`
+    : `${state.dateRangeStart} 至 ${state.dateRangeEnd}`;
+  appendEl(headingRow, 'h3', '', dateLabel);
   const sortBtn2 = appendEl(headingRow, 'button', 'oqm-sort-toggle');
   sortBtn2.type = 'button';
   sortBtn2.textContent = state.sortDirection === 'asc' ? '↑ 升序' : '↓ 降序';
@@ -281,6 +362,14 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
     renderCrossDateTimeline(container, state, callbacks, markdown);
     return;
   }
+
+  // Range mode: group by date with date headings (like cross-date), not a flat list.
+  if (state.viewMode === 'range') {
+    renderRangeTimeline(container, state, callbacks, markdown);
+    return;
+  }
+
+  // Single-date mode: flat list, no date grouping needed.
 
   const list = appendDiv(container, 'oqm-record-list');
   if (state.records.length === 0) {
@@ -300,6 +389,44 @@ function renderMain(container: HTMLElement, state: OverviewState, callbacks: Ove
     loadBtn.type = 'button';
     loadBtn.textContent = `加载更多（已显示 ${state.records.length} / ${state.recordsTotal}）`;
     loadBtn.onclick = () => callbacks.onLoadMore();
+    observeLoadMore(loadBtn, () => callbacks.onLoadMore());
+  }
+}
+
+function renderRangeTimeline(container: HTMLElement, state: OverviewState, callbacks: OverviewCallbacks, markdown: MarkdownApi): void {
+  if (state.records.length === 0) {
+    const list = appendDiv(container, 'oqm-record-list');
+    appendDiv(list, 'oqm-empty', '该时间段内还没有 Quick Memo。');
+    return;
+  }
+
+  // Records arrive already sorted (newest first). Group them by date.
+  const groups = new Map<string, QuickMemoRecord[]>();
+  for (const record of state.records) {
+    const bucket = groups.get(record.date) ?? [];
+    bucket.push(record);
+    groups.set(record.date, bucket);
+  }
+
+  const list = appendDiv(container, 'oqm-record-list');
+  for (const [date, groupRecords] of groups) {
+    const group = appendDiv(list, 'oqm-date-group');
+    appendDiv(group, 'oqm-date-group-heading', date);
+    const cards = appendDiv(group, 'oqm-date-group-cards');
+    for (const record of groupRecords) {
+      const key = recordKey(record);
+      renderRecord(cards, record, state.editingRecordId === key, state.openMenuRecordId === key, callbacks, markdown);
+    }
+  }
+
+  // Lazy load
+  if (state.records.length < state.recordsTotal) {
+    const loadMoreDiv = appendDiv(container, 'oqm-load-more');
+    const loadBtn = appendEl(loadMoreDiv, 'button', 'oqm-load-more-btn');
+    loadBtn.type = 'button';
+    loadBtn.textContent = `加载更多（已显示 ${state.records.length} / ${state.recordsTotal}）`;
+    loadBtn.onclick = () => callbacks.onLoadMore();
+    observeLoadMore(loadBtn, () => callbacks.onLoadMore());
   }
 }
 
@@ -434,7 +561,7 @@ function renderStats(container: HTMLElement, stats: OverviewStats): void {
 
   // Top row: the two record types (memo / todo).
   const typesRow = appendDiv(block, 'oqm-stats-row oqm-stats-types');
-  addStatCard(typesRow, String(stats.memo), '普通');
+  addStatCard(typesRow, String(stats.memo), '闪念');
   addStatCard(typesRow, String(stats.todo), '待办');
 
   // Bottom row: usage breadth — days used and total records, each filling half.
@@ -461,35 +588,66 @@ function renderHeatmap(container: HTMLElement, heatmap: HeatmapDay[], todayDate:
   for (const day of heatmap) counts.set(day.date, day.count);
   const max = Math.max(1, ...heatmap.map((day) => day.count));
 
-  // Header row: "近 3 个月活动" label on the left, a "今天" jump link on the right
-  // (only when the user is browsing a historical date).
+  // ── Header: arrows (left) | month-year (center) | today (right) ──
   const header = appendDiv(container, 'oqm-heatmap-header');
-  appendDiv(header, 'oqm-section-label', '近 3 个月活动');
-  if (selectedDate !== todayDate) {
-    const today = appendEl(header, 'button', 'oqm-heatmap-today', '今天');
-    today.type = 'button';
-    today.title = '回到今天';
-    today.onclick = () => callbacks.onSelectDate(todayDate);
+
+  const navGroup = appendDiv(header, 'oqm-heatmap-nav-group');
+  const prevBtn = appendEl(navGroup, 'button', 'oqm-heatmap-nav', '◀');
+  prevBtn.type = 'button';
+  prevBtn.title = '上一个月';
+  prevBtn.onclick = () => callbacks.onHeatmapPrevMonth();
+  const nextBtn = appendEl(navGroup, 'button', 'oqm-heatmap-nav', '▶');
+  nextBtn.type = 'button';
+  nextBtn.title = '下一个月';
+  nextBtn.onclick = () => callbacks.onHeatmapNextMonth();
+
+  const [selYear, selMonth] = selectedDate.split('-').map((part) => Number(part));
+  appendDiv(header, 'oqm-heatmap-month-title', `${selYear}年${selMonth}月`);
+
+  const isCurrentMonth = selectedDate === todayDate;
+  const todayBtn = appendEl(header, 'button', `oqm-heatmap-today${isCurrentMonth ? ' oqm-heatmap-today--current' : ''}`, '今天');
+  todayBtn.type = 'button';
+  if (isCurrentMonth) {
+    todayBtn.disabled = true;
+    todayBtn.title = '当前月份';
+  } else {
+    todayBtn.title = '回到今天';
+    todayBtn.onclick = () => callbacks.onSelectDate(todayDate);
   }
 
-  // A single flat stream of exactly 90 small squares, anchored at the 1st of the
-  // month two months before today. Today therefore falls inside the grid (not at
-  // the end), and the count is always 90 regardless of the selected date.
-  const grid = appendDiv(container, 'oqm-heatmap-grid');
-  const [year, month] = todayDate.split('-').map((part) => Number(part));
-  const cursor = new Date(year, month - 3, 1); // 1st of (this month - 2)
+  // ── Single-month calendar grid ──
+  const cal = appendDiv(container, 'oqm-heatmap-calendar');
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  for (const wd of weekdays) appendDiv(cal, 'oqm-heatmap-weekday', wd);
 
-  for (let i = 0; i < 90; i += 1) {
-    const dateStr = formatDay(cursor);
+  const firstDay = new Date(selYear, selMonth - 1, 1);
+  const firstWeekday = firstDay.getDay();
+  for (let i = 0; i < firstWeekday; i += 1) {
+    appendDiv(cal, 'oqm-heatmap-empty');
+  }
+
+  const daysInMonth = new Date(selYear, selMonth, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d += 1) {
+    const dateObj = new Date(selYear, selMonth - 1, d);
+    const dateStr = formatDay(dateObj);
+
     const count = counts.get(dateStr) ?? 0;
     const level = count === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((count / max) * 4)));
+    const isToday = dateStr === todayDate;
     const isSelected = dateStr === selectedDate;
-    const button = appendEl(grid, 'button', `oqm-heatmap-day oqm-heatmap-level-${level}${isSelected ? ' oqm-heatmap-selected' : ''}`);
-    button.type = 'button';
-    button.title = `${dateStr}：${count} 条`;
-    button.setAttribute('aria-label', `${dateStr}，${count} 条记录`);
-    button.onclick = () => callbacks.onSelectDate(dateStr);
-    cursor.setDate(cursor.getDate() + 1);
+
+    const cls = [
+      'oqm-heatmap-day',
+      `oqm-heatmap-level-${level}`,
+      isToday ? 'oqm-heatmap-day-today' : '',
+      isSelected ? 'oqm-heatmap-selected' : '',
+    ].filter(Boolean).join(' ');
+
+    const cell = appendEl(cal, 'button', cls, String(d));
+    cell.type = 'button';
+    cell.title = `${dateStr}：${count} 条`;
+    cell.setAttribute('aria-label', `${dateStr}，${count} 条记录`);
+    cell.onclick = () => callbacks.onSelectDate(dateStr);
   }
 }
 
@@ -502,11 +660,11 @@ function pad2(value: number): string {
 }
 
 function typeLabel(type: QuickMemoType): string {
-  return type === 'memo' ? '普通' : '待办';
+  return type === 'memo' ? '闪念' : '待办';
 }
 
 const TYPE_OPTIONS: ReadonlyArray<readonly [QuickMemoType, string]> = [
-  ['memo', '普通'],
+  ['memo', '闪念'],
   ['todo', '待办'],
 ];
 
@@ -541,15 +699,36 @@ function appendOption(select: HTMLSelectElement, label: string, value: string): 
   select.appendChild(option);
 }
 
+/** Auto-trigger load-more when the button scrolls into view. */
+function observeLoadMore(btn: HTMLElement, onLoad: () => void): void {
+  if (typeof IntersectionObserver === 'undefined') return; // jsdom / SSR
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0]?.isIntersecting) {
+      observer.disconnect();
+      onLoad();
+    }
+  }, { rootMargin: '200px' });
+  observer.observe(btn);
+}
+
 /* ────────── Image Lightbox ────────── */
 
 interface LightboxState {
   scale: number;
+  translateX: number;
+  translateY: number;
   overlay: HTMLElement | null;
   imgEl: HTMLImageElement | null;
 }
 
-const lightbox: LightboxState = { scale: 1, overlay: null, imgEl: null };
+const lightbox: LightboxState = { scale: 1, translateX: 0, translateY: 0, overlay: null, imgEl: null };
+
+function applyLightboxTransform(): void {
+  if (lightbox.imgEl) {
+    lightbox.imgEl.style.transform =
+      `scale(${lightbox.scale}) translate(${lightbox.translateX}px, ${lightbox.translateY}px)`;
+  }
+}
 
 function ensureLightbox(): HTMLElement {
   if (lightbox.overlay) return lightbox.overlay;
@@ -586,12 +765,59 @@ function ensureLightbox(): HTMLElement {
 
   const hint = activeDocument.createElement('div');
   hint.className = 'oqm-lightbox-hint';
-  hint.textContent = '滚轮缩放 · 双击切换 · 点击空白关闭';
+  hint.textContent = '滚轮缩放 · 拖拽平移 · 双击切换 · 点击空白关闭';
   overlay.appendChild(hint);
 
   activeDocument.body.appendChild(overlay);
   lightbox.overlay = overlay;
   lightbox.imgEl = img;
+
+  // ── Drag state (shared across mouse + touch) ──
+  let dragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let dragOrigTx = 0;
+  let dragOrigTy = 0;
+
+  const startDrag = (clientX: number, clientY: number): void => {
+    dragging = true;
+    dragStartX = clientX;
+    dragStartY = clientY;
+    dragOrigTx = lightbox.translateX;
+    dragOrigTy = lightbox.translateY;
+    wrapper.style.cursor = 'grabbing';
+  };
+
+  const moveDrag = (clientX: number, clientY: number): void => {
+    if (!dragging) return;
+    lightbox.translateX = dragOrigTx + (clientX - dragStartX) / lightbox.scale;
+    lightbox.translateY = dragOrigTy + (clientY - dragStartY) / lightbox.scale;
+    applyLightboxTransform();
+  };
+
+  const endDrag = (): void => {
+    dragging = false;
+    wrapper.style.cursor = lightbox.scale > 1 ? 'grab' : '';
+  };
+
+  // ── Mouse drag ──
+  wrapper.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return; // left button only
+    startDrag(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  activeDocument.addEventListener('mousemove', (e) => {
+    moveDrag(e.clientX, e.clientY);
+  });
+  activeDocument.addEventListener('mouseup', endDrag);
+
+  // ── Mouse cursor hint when zoomed ──
+  wrapper.addEventListener('mouseenter', () => {
+    if (lightbox.scale > 1 && !dragging) wrapper.style.cursor = 'grab';
+  });
+  wrapper.addEventListener('mouseleave', () => {
+    if (!dragging) wrapper.style.cursor = '';
+  });
 
   // Desktop: wheel zoom
   wrapper.addEventListener('wheel', (e) => {
@@ -606,7 +832,7 @@ function ensureLightbox(): HTMLElement {
     setZoom(lightbox.scale === 1 ? 2 : 1);
   });
 
-  // Mobile pinch zoom
+  // ── Touch: pinch zoom (2 fingers) + single-finger drag ──
   let pinchStart = 0;
   wrapper.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2) {
@@ -614,6 +840,8 @@ function ensureLightbox(): HTMLElement {
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY,
       );
+    } else if (e.touches.length === 1) {
+      startDrag(e.touches[0].clientX, e.touches[0].clientY);
     }
   }, { passive: true });
   wrapper.addEventListener('touchmove', (e) => {
@@ -625,10 +853,13 @@ function ensureLightbox(): HTMLElement {
       const newScale = lightbox.scale * (current / pinchStart);
       setZoom(newScale);
       pinchStart = current;
+    } else if (e.touches.length === 1 && dragging) {
+      moveDrag(e.touches[0].clientX, e.touches[0].clientY);
     }
   }, { passive: true });
   wrapper.addEventListener('touchend', () => {
     pinchStart = 0;
+    endDrag();
   });
 
   // Escape key
@@ -654,6 +885,8 @@ function showImageLightbox(src: string, alt: string): void {
   img.src = src;
   img.alt = alt;
   lightbox.scale = 1;
+  lightbox.translateX = 0;
+  lightbox.translateY = 0;
   img.style.transform = 'scale(1)';
   overlay.classList.add('oqm-lightbox--open');
 }
@@ -661,9 +894,7 @@ function showImageLightbox(src: string, alt: string): void {
 function setZoom(scale: number): void {
   const clamped = Math.max(0.5, Math.min(5, Math.round(scale * 100) / 100));
   lightbox.scale = clamped;
-  if (lightbox.imgEl) {
-    lightbox.imgEl.style.transform = `scale(${clamped})`;
-  }
+  applyLightboxTransform();
 }
 
 function closeLightbox(): void {

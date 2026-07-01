@@ -193,7 +193,7 @@ export class QuickMemoParser {
 
     const bodyPart = bodyText || '';
     const raw = bodyPart ? `${line}\n${body}` : line;
-    const label = type === 'todo' ? '待办' : '普通';
+    const label = type === 'todo' ? '待办' : '闪念';
 
     return {
       id,

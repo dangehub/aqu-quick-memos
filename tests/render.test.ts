@@ -9,24 +9,7 @@ type Stats = OverviewStats;
 describe('renderOverview', () => {
   it('renders profile, input, records, filters, and heatmap', () => {
     const root = document.createElement('div');
-    const callbacks = {
-      onSave: vi.fn(),
-      onSelectDate: vi.fn(),
-      onToggleTodo: vi.fn(),
-      onEdit: vi.fn(),
-      onSaveEdit: vi.fn(),
-      onCancelEdit: vi.fn(),
-      onDelete: vi.fn(),
-      onCopyBlock: vi.fn(),
-      onOpenSource: vi.fn(),
-      onFilterChange: vi.fn(),
-      onToggleMenu: vi.fn(),
-      onTagContext: vi.fn(),
-      onToggleSidebar: vi.fn(),
-      onToggleSort: vi.fn(),
-      onLoadMore: vi.fn(),
-      onShowAll: vi.fn(),
-    };
+    const callbacks = makeCallbacks();
 
     renderOverview(root, {
       settings: { ...DEFAULT_SETTINGS, userName: 'Ada', userSlogan: 'Think clearly' },
@@ -52,9 +35,10 @@ describe('renderOverview', () => {
     expect(root.textContent).toContain('idea #a');
     expect(root.textContent).toContain('#a');
     expect(root.querySelector<HTMLTextAreaElement>('.oqm-input')?.placeholder).toContain('Markdown');
-    expect(root.querySelectorAll('.oqm-heatmap-month-label')).toHaveLength(0);
+    expect(root.querySelectorAll('.oqm-heatmap-month-header')).toHaveLength(0);
     const dayCells = root.querySelectorAll('.oqm-heatmap-day');
-    expect(dayCells).toHaveLength(90);
+    // Single-month view: June 2026 has 30 active days.
+    expect(dayCells).toHaveLength(30);
     const recordDay = Array.from(dayCells).find((cell) => cell.getAttribute('title') === '2026-06-18：1 条');
     expect(recordDay?.classList.contains('oqm-heatmap-level-4')).toBe(true);
     expect(recordDay?.classList.contains('oqm-heatmap-selected')).toBe(true);
@@ -200,7 +184,7 @@ describe('renderOverview', () => {
     const values = options.map((option) => option.value);
     expect(values).toEqual(['all', 'memo', 'todo', 'todo-done', 'todo-open']);
     const labels = options.map((option) => option.textContent);
-    expect(labels).toEqual(['全部', '普通', '待办', '已完成待办', '未完成待办']);
+    expect(labels).toEqual(['全部', '闪念', '待办', '已完成待办', '未完成待办']);
   });
 
   it('reflects todo-done and todo-open composite filters in the select value', () => {
@@ -303,7 +287,7 @@ describe('renderOverview', () => {
     expect(stats).toBeTruthy();
     expect(stats!.textContent).toContain('3');
     expect(stats!.textContent).toContain('10');
-    expect(stats!.textContent).toContain('普通');
+    expect(stats!.textContent).toContain('闪念');
     expect(stats!.textContent).toContain('待办');
     expect(stats!.textContent).toContain('2/3');
     const bar = stats!.querySelector<HTMLDivElement>('.oqm-stats-ratio-bar > div');
@@ -338,7 +322,7 @@ describe('renderOverview', () => {
     expect(callbacks.onSelectDate).toHaveBeenCalledWith('2026-06-18');
   });
 
-  it('hides the 今天 link when today is already selected', () => {
+  it('shows the 今天 button in disabled state when today is already selected', () => {
     const root = document.createElement('div');
     renderOverview(root, {
       settings: DEFAULT_SETTINGS,
@@ -358,7 +342,10 @@ describe('renderOverview', () => {
       viewMode: 'all',
     }, makeCallbacks());
 
-    expect(root.querySelector('.oqm-heatmap-today')).toBeNull();
+    const todayBtn = root.querySelector<HTMLButtonElement>('.oqm-heatmap-today');
+    expect(todayBtn).toBeTruthy();
+    expect(todayBtn!.disabled).toBe(true);
+    expect(todayBtn!.classList.contains('oqm-heatmap-today--current')).toBe(true);
   });
 
   it('shows the selected date next to the composer type selector', () => {
@@ -432,6 +419,10 @@ function makeCallbacks() {
     onToggleSort: vi.fn(),
     onLoadMore: vi.fn(),
     onShowAll: vi.fn(),
+    onApplyDateRange: vi.fn(),
+    onHeatmapPrevMonth: vi.fn(),
+    onHeatmapNextMonth: vi.fn(),
+    onAttachFile: vi.fn(),
   };
 }
 

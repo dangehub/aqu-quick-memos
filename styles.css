@@ -198,6 +198,28 @@
   white-space: nowrap;
 }
 
+.oqm-attach-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.oqm-attach-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
+}
+
 .oqm-input {
   min-height: 140px;
   resize: vertical;
@@ -544,26 +566,53 @@
   background: var(--background-secondary);
 }
 
-/* ---------- Heatmap (flat stream of squares, fills sidebar width) ---------- */
+/* ---------- Heatmap (monthly calendar grid, 7 columns) ---------- */
 
 .oqm-heatmap-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--size-2-2);
-  /* A fixed height (not min-height) keeps this row identical whether or not the
-     今天 button is rendered, so selecting/deselecting a date never shifts the
-     layout below it. The button is sized to fit inside this height exactly. */
-  height: 22px;
+  gap: var(--size-2-1);
   margin: var(--size-4-3) 0 var(--size-2-2);
 }
 
-.oqm-heatmap-header .oqm-section-label {
-  margin: 0;
-  line-height: 22px;
+.oqm-heatmap-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.oqm-heatmap-nav:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.oqm-heatmap-nav-group {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.oqm-heatmap-month-title {
+  flex: 1;
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-normal);
+  text-align: center;
+  line-height: 24px;
 }
 
 .oqm-heatmap-today {
+  flex-shrink: 0;
   border: 0;
   padding: 0 8px;
   height: 22px;
@@ -582,6 +631,95 @@
   color: var(--text-on-accent);
   text-decoration: none;
 }
+
+/* Disabled state — already viewing the current month */
+.oqm-heatmap-today--current {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+
+.oqm-heatmap-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: var(--size-4-3);
+}
+
+.oqm-heatmap-weekday {
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-faint);
+  padding: 2px 0 4px;
+  line-height: 1;
+}
+
+.oqm-heatmap-month-header {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: var(--size-2-2) 0 var(--size-2-1);
+  margin-top: 2px;
+  line-height: 1;
+}
+
+.oqm-heatmap-empty {
+  /* Placeholder cell — invisible, just holds the grid slot. */
+}
+
+.oqm-heatmap-day {
+  appearance: none;
+  -webkit-appearance: none;
+  aspect-ratio: 1;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  font-size: 10px;
+  font-family: var(--font-interface);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 160ms ease, outline-color 160ms ease;
+}
+
+.oqm-heatmap-day:hover {
+  outline: 1px solid var(--interactive-accent-hover);
+  outline-offset: -1px;
+}
+
+.oqm-heatmap-day.oqm-heatmap-selected {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+.oqm-heatmap-day.oqm-heatmap-day-today {
+  font-weight: 700;
+  /* Today ring — a subtle inner border so it stands out even on dark cells. */
+  box-shadow: inset 0 0 0 1.5px var(--text-normal);
+}
+
+/* Days outside the 90-day data window — dimmed, not clickable. */
+.oqm-heatmap-day-dim {
+  color: var(--text-faint) !important;
+  background: transparent !important;
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+/* Scoped under .oqm-root for higher specificity than theme button resets,
+   so the green levels win without !important. */
+.oqm-root .oqm-heatmap-day.oqm-heatmap-level-0 { background: var(--background-modifier-border); color: var(--text-faint); }
+.oqm-root .oqm-heatmap-day.oqm-heatmap-level-1 { background: rgba(var(--oqm-heatmap-green-rgb), 0.35); color: var(--text-muted); }
+.oqm-root .oqm-heatmap-day.oqm-heatmap-level-2 { background: rgba(var(--oqm-heatmap-green-rgb), 0.55); color: var(--text-on-accent-inverted, var(--text-normal)); }
+.oqm-root .oqm-heatmap-day.oqm-heatmap-level-3 { background: rgba(var(--oqm-heatmap-green-rgb), 0.78); color: var(--text-on-accent-inverted, var(--text-normal)); }
+.oqm-root .oqm-heatmap-day.oqm-heatmap-level-4 { background: rgb(var(--oqm-heatmap-green-rgb)); color: var(--text-on-accent, #fff); }
 
 .oqm-stats {
   margin-bottom: var(--size-4-3);
@@ -661,45 +799,33 @@
   font-variant-numeric: tabular-nums;
 }
 
-.oqm-heatmap-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
+/* ---------- Date jumper — pick any arbitrary date ---------- */
+
+.oqm-date-jumper {
   margin-bottom: var(--size-4-3);
 }
 
-.oqm-heatmap-day {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
-  min-width: 12px;
-  min-height: 12px;
-  padding: 0;
-  border: 0;
-  border-radius: 3px;
-  background: var(--background-modifier-border);
-  box-shadow: none;
-  cursor: pointer;
-  transition: background-color 160ms ease, outline-color 160ms ease;
+.oqm-date-jumper .oqm-section-label {
+  margin: var(--size-4-3) 0 var(--size-2-2);
 }
 
-.oqm-heatmap-day:hover {
-  outline: 1px solid var(--interactive-accent-hover);
+.oqm-date-jumper-input {
+  width: 100%;
+  min-height: 36px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: var(--font-ui-small);
 }
 
-.oqm-heatmap-day.oqm-heatmap-selected {
-  outline: 2px solid var(--interactive-accent);
-  outline-offset: 1px;
+.oqm-date-jumper-input:focus {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 1px var(--interactive-accent);
+  outline: none;
 }
-
-/* Scoped under .oqm-root for higher specificity than theme button resets,
-   so the green levels win without !important. */
-.oqm-root .oqm-heatmap-day.oqm-heatmap-level-0 { background: var(--background-modifier-border); background-color: var(--background-modifier-border); }
-.oqm-root .oqm-heatmap-day.oqm-heatmap-level-1 { background: rgba(var(--oqm-heatmap-green-rgb), 0.35); background-color: rgba(var(--oqm-heatmap-green-rgb), 0.35); }
-.oqm-root .oqm-heatmap-day.oqm-heatmap-level-2 { background: rgba(var(--oqm-heatmap-green-rgb), 0.55); background-color: rgba(var(--oqm-heatmap-green-rgb), 0.55); }
-.oqm-root .oqm-heatmap-day.oqm-heatmap-level-3 { background: rgba(var(--oqm-heatmap-green-rgb), 0.78); background-color: rgba(var(--oqm-heatmap-green-rgb), 0.78); }
-.oqm-root .oqm-heatmap-day.oqm-heatmap-level-4 { background: rgb(var(--oqm-heatmap-green-rgb)); background-color: rgb(var(--oqm-heatmap-green-rgb)); }
 
 /* Collapse button inside the profile area. */\n.oqm-sidebar-collapse-btn {\n  flex: 0 0 auto;\n  width: 28px;\n  height: 28px;\n  padding: 0;\n  border: 1px solid var(--background-modifier-border);\n  border-radius: var(--radius-s);\n  background: var(--background-secondary);\n  color: var(--text-muted);\n  font-size: 14px;\n  line-height: 1;\n  cursor: pointer;\n  margin-left: auto;\n  transition: background-color 160ms ease, color 160ms ease;\n}\n\n.oqm-sidebar-collapse-btn:hover {\n  background: var(--background-modifier-hover);\n  color: var(--text-normal);\n}\n\n/* When sidebar is collapsed, hide everything in the sidebar except the profile. */\n.oqm-sidebar-collapsed .oqm-sidebar {\n  display: none;\n}\n\n.oqm-sidebar-collapsed .oqm-layout {\n  grid-template-columns: 1fr;\n}\n\n/* Sort toggle button in the heading row */\n.oqm-heading-row {\n  display: flex;\n  align-items: center;\n  gap: var(--size-2-3);\n  margin-bottom: var(--size-4-3);\n}\n\n.oqm-heading-row h3 {\n  margin: 0;\n  flex: 1 1 auto;\n}\n\n.oqm-sort-toggle {\n  min-height: 28px;\n  padding: 0 10px;\n  border: 1px solid var(--background-modifier-border);\n  border-radius: var(--radius-s);\n  background: var(--background-secondary);\n  color: var(--text-muted);\n  font-size: var(--font-ui-smaller);\n  cursor: pointer;\n  white-space: nowrap;\n  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;\n}\n\n.oqm-sort-toggle:hover {\n  background: var(--background-modifier-hover);\n  color: var(--text-normal);\n  border-color: var(--interactive-accent);\n}\n\n/* Warning badge at the bottom of the sidebar */\n.oqm-warnings {\n  margin-top: var(--size-4-3);\n  padding: var(--size-2-2) var(--size-2-3);\n  border: 1px solid var(--background-modifier-border);\n  border-radius: var(--radius-s);\n  background: var(--background-secondary);\n  color: var(--text-muted);\n  font-size: var(--font-ui-smaller);\n  line-height: var(--line-height-normal);\n}\n\n/* ---------- Shared focus ---------- */
 
@@ -743,7 +869,7 @@
     overflow-y: auto;
     transform: translateX(0);
     transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: max(48px, env(safe-area-inset-top, 0px));
   }
 
   /* Collapsed: slide sidebar off-screen left */
@@ -847,6 +973,19 @@
   /* Compact composer on mobile */
   .oqm-input {
     min-height: 100px;
+  }
+
+  /* Hide desktop heading row on mobile — top bar already shows title + sort. */
+  .oqm-heading-row {
+    display: none;
+  }
+
+  /* Composer date becomes a tappable button that opens the sidebar (heatmap). */
+  .oqm-composer-date {
+    color: var(--interactive-accent);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 }
 
@@ -1026,4 +1165,107 @@
   .oqm-lightbox-img {
     transition: none;
   }
+}
+
+/* ── Mobile: prevent bottom toolbar from covering content ── */
+
+.oqm-main,
+.oqm-sidebar {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Date range picker (sidebar) ── */
+
+.oqm-date-range {
+  margin-bottom: var(--size-4-3);
+}
+
+.oqm-date-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-1);
+  margin-bottom: var(--size-2-2);
+}
+
+.oqm-date-range-start,
+.oqm-date-range-end {
+  flex: 1;
+  min-width: 0;
+  padding: var(--size-2-1) var(--size-2-2);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  font-family: inherit;
+}
+
+.oqm-date-range-sep {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.oqm-date-range-apply {
+  width: 100%;
+  padding: var(--size-2-1) var(--size-4-2);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-size: var(--font-ui-small);
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 160ms ease;
+}
+
+.oqm-date-range-apply:hover {
+  opacity: 0.85;
+}
+
+/* ── Filter chip (main view, above records) ── */
+
+.oqm-filter-chip-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--size-4-2);
+}
+
+.oqm-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  padding: var(--size-2-1) var(--size-4-3);
+  border-radius: 999px;
+  background: var(--background-modifier-hover);
+  font-size: var(--font-ui-small);
+}
+
+.oqm-filter-chip-text {
+  color: var(--text-muted);
+}
+
+.oqm-filter-chip-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.oqm-filter-chip-clear:hover {
+  background: var(--background-modifier-border);
+  color: var(--text-normal);
+}
+
+.oqm-load-more {
+  padding-bottom: var(--size-4-4);
 }

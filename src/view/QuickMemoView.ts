@@ -1,4 +1,4 @@
-import { App, Component, ItemView, MarkdownRenderer, Menu, Modal, Notice, Setting, WorkspaceLeaf } from 'obsidian';
+import { App, Component, ItemView, MarkdownRenderer, Menu, Modal, Notice, Platform, Setting, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_QUICK_MEMO } from '../constants';
 import type { QuickMemoRecord, QuickMemoSettings, QuickMemoType } from '../types';
 import type { IndexService } from '../index/IndexService';
@@ -19,8 +19,11 @@ export class QuickMemoView extends ItemView {
    *  used by formatAttachmentLink for relative-path computation. */
   private currentMemoDir = '';
   private sidebarCollapsed = false;
-  /** `'all'` = show records across all dates; `'date'` = filter to selectedDate. */
-  private viewMode: 'all' | 'date' = 'all';
+  /** `'all'` = show records across all dates; `'date'` = filter to selectedDate;
+   *  `'range'` = filter to dateRange. */
+  private viewMode: 'all' | 'date' | 'range' = 'all';
+  /** Date range filter (inclusive). Only used when viewMode === 'range'. */
+  private dateRange: { start: string; end: string } | null = null;
   /** Number of records currently visible (lazy load). */
   private visibleCount = 50;
   /** Child components created by MarkdownRenderer during a render; unloaded on
@@ -48,6 +51,10 @@ export class QuickMemoView extends ItemView {
 
   async onOpen(): Promise<void> {
     this.currentDay = today();
+    // Prevent the Obsidian mobile toolbar from covering the bottom of the view.
+    if (Platform.isMobile) {
+      this.contentEl.style.paddingBottom = '80px';
+    }
     this.render();
     void this.rebuildIndexInBackground();
     // Check once a minute for a local-day rollover while the view stays open.
@@ -146,7 +153,12 @@ export class QuickMemoView extends ItemView {
     const restoreFocus = captureFocusRestore(this.contentEl);
 
     const allRecords = this.index.query({});
-    const dateFilter = this.viewMode === 'date' ? { selectedDate: this.selectedDate } : {};
+    let dateFilter: Partial<ViewFilters> = {};
+    if (this.viewMode === 'date') {
+      dateFilter = { selectedDate: this.selectedDate };
+    } else if (this.viewMode === 'range' && this.dateRange) {
+      dateFilter = { dateStart: this.dateRange.start, dateEnd: this.dateRange.end };
+    }
     const filtered = filterRecordsForView(allRecords, { ...this.filters, ...dateFilter });
     const records = sortRecordsForDisplay(filtered, this.settings.sortDirection);
     const hasMore = records.length > this.visibleCount;
@@ -167,6 +179,8 @@ export class QuickMemoView extends ItemView {
       sortDirection: this.settings.sortDirection,
       sidebarCollapsed: this.sidebarCollapsed,
       viewMode: this.viewMode,
+      dateRangeStart: this.dateRange?.start,
+      dateRangeEnd: this.dateRange?.end,
       markdown: {
         render: (source, el) => {
           const component = new Component();
@@ -180,7 +194,9 @@ export class QuickMemoView extends ItemView {
       onSelectDate: (date) => {
         this.selectedDate = date;
         this.viewMode = 'date';
+        this.dateRange = null;
         this.visibleCount = 50;
+        this.sidebarCollapsed = true;
         this.render();
       },
       onToggleTodo: (record) => {
@@ -242,8 +258,33 @@ export class QuickMemoView extends ItemView {
       },
       onShowAll: () => {
         this.viewMode = 'all';
+        this.dateRange = null;
         this.visibleCount = 50;
         this.render();
+      },
+      onApplyDateRange: (start, end) => {
+        this.viewMode = 'range';
+        this.dateRange = { start, end };
+        this.visibleCount = 50;
+        this.sidebarCollapsed = true;
+        this.render();
+      },
+      onHeatmapPrevMonth: () => {
+        const [y, m] = this.selectedDate.split('-').map(Number);
+        const prev = new Date(y, m - 2, 1);
+        const mo = String(prev.getMonth() + 1).padStart(2, '0');
+        this.selectedDate = `${prev.getFullYear()}-${mo}-01`;
+        this.render();
+      },
+      onHeatmapNextMonth: () => {
+        const [y, m] = this.selectedDate.split('-').map(Number);
+        const next = new Date(y, m, 1);
+        const mo = String(next.getMonth() + 1).padStart(2, '0');
+        this.selectedDate = `${next.getFullYear()}-${mo}-01`;
+        this.render();
+      },
+      onAttachFile: (file, textarea) => {
+        void this.attachImage(file, textarea);
       },
     });
 
@@ -480,6 +521,17 @@ export class QuickMemoView extends ItemView {
 
   private async openSource(record: QuickMemoRecord): Promise<void> {
     await this.app.workspace.openLinkText(record.filePath, '', false);
+  }
+
+  private async attachImage(file: File, textarea: HTMLTextAreaElement): Promise<void> {
+    try {
+      const fullPath = await this.saveAttachment(file);
+      const link = this.formatAttachmentLink(fullPath);
+      this.insertAtCursor(textarea, link);
+    } catch (err) {
+      console.error('[QuickMemo] attachImage failed:', err);
+      new Notice(`插入图片失败：${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 }
 
