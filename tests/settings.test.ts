@@ -35,6 +35,8 @@ describe('settings', () => {
       linkStyle: 'obsidianDefault',
       linkPathFormat: 'obsidianDefault',
       openOnStartup: false,
+      insertMode: 'heading',
+      parseMode: 'heading',
     });
   });
 

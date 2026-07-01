@@ -1,5 +1,5 @@
 import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import type { AttachmentFolderMode, LinkPathFormat, LinkStyle, QuickMemoSettings, SortDirection } from '../types';
+import type { AttachmentFolderMode, InsertMode, LinkPathFormat, LinkStyle, ParseMode, QuickMemoSettings, SortDirection } from '../types';
 
 interface QuickMemoSettingsHost extends Plugin {
   settings: QuickMemoSettings;
@@ -187,6 +187,36 @@ export class QuickMemoSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.openOnStartup)
         .onChange(async (value) => {
           this.plugin.settings.openOnStartup = value;
+          await this.plugin.saveSettings();
+        }));
+
+    // ── 写入与解析范围 ──
+
+    new Setting(containerEl)
+      .setName('写入位置')
+      .setDesc('新建记录时插入到日记的什么位置。' +
+        '「标题下」会将新记录插入到上方指定标题的段落中；' +
+        '「日记末尾」直接追加到文件末尾。')
+      .addDropdown((dropdown) => dropdown
+        .addOption('heading', '标题下')
+        .addOption('end', '日记末尾')
+        .setValue(this.plugin.settings.insertMode)
+        .onChange(async (value) => {
+          this.plugin.settings.insertMode = value as InsertMode;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName('处理范围')
+      .setDesc('插件扫描日记文件的范围。' +
+        '「仅标题内」只处理上方指定标题段落中的记录；' +
+        '「整篇日记」扫描文件中所有符合格式的记录（兼容不同标题的历史数据）。')
+      .addDropdown((dropdown) => dropdown
+        .addOption('heading', '仅标题内')
+        .addOption('full', '整篇日记')
+        .setValue(this.plugin.settings.parseMode)
+        .onChange(async (value) => {
+          this.plugin.settings.parseMode = value as ParseMode;
           await this.plugin.saveSettings();
         }));
   }

@@ -61,7 +61,7 @@ export default class QuickMemoPlugin extends Plugin {
     const parser = new QuickMemoParser(() => this.settings.quickMemoHeading);
     const resolver = new DailyNoteResolver(vault, getDailyNotesConfig(this.app), this.settings, momentFormatter());
     const repository = new MarkdownRecordRepository(vault, resolver, parser, this.settings);
-    this.index = new IndexService(vault, parser);
+    this.index = new IndexService(vault, parser, () => this.settings.parseMode);
 
     this.registerView(VIEW_TYPE_QUICK_MEMO, (leaf) => new QuickMemoView(leaf, this.settings, repository, this.index, resolver, () => this.saveSettings()));
 

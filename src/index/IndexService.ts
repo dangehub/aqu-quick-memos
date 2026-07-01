@@ -1,4 +1,4 @@
-import type { HeatmapDay, IndexQuery, ParseWarning, QuickMemoRecord } from '../types';
+import type { HeatmapDay, IndexQuery, ParseWarning, QuickMemoRecord, ParseMode } from '../types';
 import type { VaultLike } from '../test/fakeVault';
 import type { QuickMemoParser } from '../markdown/QuickMemoParser';
 import { dateFromPath, isQuickMemoPath } from '../daily-notes/path';
@@ -11,6 +11,7 @@ export class IndexService {
   constructor(
     private readonly vault: VaultLike,
     private readonly parser: QuickMemoParser,
+    private readonly parseMode: () => ParseMode = () => 'heading',
   ) {}
 
   async rebuild(): Promise<void> {
@@ -18,10 +19,11 @@ export class IndexService {
     const nextWarnings: ParseWarning[] = [];
     const nextMtimes = new Map<string, number>();
 
+    const mode = this.parseMode();
     for (const filePath of this.indexableMarkdownFiles()) {
       const content = await this.vault.read(filePath);
       const date = dateFromPath(filePath);
-      const parsed = this.parser.parseFile(filePath, date, content);
+      const parsed = this.parser.parseFile(filePath, date, content, mode);
       next.push(...parsed.records);
       nextWarnings.push(...parsed.warnings);
       nextMtimes.set(filePath, this.vault.stat(filePath)?.mtime ?? 0);
@@ -40,7 +42,7 @@ export class IndexService {
     const reparsed: QuickMemoRecord[] = [];
     const refreshedWarnings: ParseWarning[] = this.warningsList.filter((warning) => !changed.includes(warning.filePath));
     for (const filePath of changed) {
-      const parsed = this.parser.parseFile(filePath, dateFromPath(filePath), await this.vault.read(filePath));
+      const parsed = this.parser.parseFile(filePath, dateFromPath(filePath), await this.vault.read(filePath), this.parseMode());
       reparsed.push(...parsed.records);
       refreshedWarnings.push(...parsed.warnings);
       this.mtimes.set(filePath, this.vault.stat(filePath)?.mtime ?? 0);

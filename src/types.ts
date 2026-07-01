@@ -5,6 +5,10 @@ export type DateRangePreset = 'today' | '7d' | '30d' | 'custom';
 export type AttachmentFolderMode = 'obsidianDefault' | 'root' | 'sameFolder' | 'subFolder' | 'customFolder';
 export type LinkStyle = 'obsidianDefault' | 'wiki' | 'markdown';
 export type LinkPathFormat = 'obsidianDefault' | 'shortest' | 'relative' | 'absolute';
+/** Where new records are inserted in the diary file. */
+export type InsertMode = 'heading' | 'end';
+/** Which parts of the diary file are scanned for records. */
+export type ParseMode = 'heading' | 'full';
 
 export interface QuickMemoSettings {
   userName: string;
@@ -30,6 +34,10 @@ export interface QuickMemoSettings {
   linkPathFormat: LinkPathFormat;
   /** Auto-open the Quick Memo overview when the plugin loads. */
   openOnStartup: boolean;
+  /** Where new records are inserted: under the heading, or at the end of the file. */
+  insertMode: InsertMode;
+  /** Which parts of the file are parsed: only under the heading, or the entire file. */
+  parseMode: ParseMode;
 }
 
 export interface RecordDraft {

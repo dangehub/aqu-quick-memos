@@ -1,4 +1,4 @@
-import type { QuickMemoSettings, SortDirection } from '../types';
+import type { QuickMemoSettings, SortDirection, InsertMode, ParseMode } from '../types';
 
 export const DEFAULT_SETTINGS: QuickMemoSettings = {
   userName: 'Quick Memo',
@@ -16,9 +16,13 @@ export const DEFAULT_SETTINGS: QuickMemoSettings = {
   linkStyle: 'obsidianDefault',
   linkPathFormat: 'obsidianDefault',
   openOnStartup: false,
+  insertMode: 'heading',
+  parseMode: 'heading',
 };
 
 const VALID_SORTS: SortDirection[] = ['asc', 'desc'];
+const VALID_INSERT_MODES: InsertMode[] = ['heading', 'end'];
+const VALID_PARSE_MODES: ParseMode[] = ['heading', 'full'];
 
 export function normalizeSettings(raw: unknown): QuickMemoSettings {
   const value = isObject(raw) ? raw : {};
@@ -36,6 +40,8 @@ export function normalizeSettings(raw: unknown): QuickMemoSettings {
   merged.fallbackDailyNotesFolder = ensureString(merged.fallbackDailyNotesFolder, DEFAULT_SETTINGS.fallbackDailyNotesFolder).trim();
   merged.fallbackDateFormat = ensureString(merged.fallbackDateFormat, DEFAULT_SETTINGS.fallbackDateFormat).trim() || DEFAULT_SETTINGS.fallbackDateFormat;
   merged.enableBlockIds = typeof merged.enableBlockIds === 'boolean' ? merged.enableBlockIds : DEFAULT_SETTINGS.enableBlockIds;
+  merged.insertMode = VALID_INSERT_MODES.includes(merged.insertMode as InsertMode) ? merged.insertMode as InsertMode : DEFAULT_SETTINGS.insertMode;
+  merged.parseMode = VALID_PARSE_MODES.includes(merged.parseMode as ParseMode) ? merged.parseMode as ParseMode : DEFAULT_SETTINGS.parseMode;
 
   return merged;
 }

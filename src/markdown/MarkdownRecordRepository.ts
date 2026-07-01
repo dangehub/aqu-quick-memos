@@ -19,9 +19,11 @@ export class MarkdownRecordRepository {
     const content = await this.vault.read(filePath);
     const id = this.settings.enableBlockIds ? createBlockId(draft.date, draft.time, idSuffix) : undefined;
     const serialized = this.parser.serializeRecord(draft, id);
-    const updated = insertIntoSection(content, this.settings.quickMemoHeading, serialized);
+    const updated = this.settings.insertMode === 'end'
+      ? insertAtEnd(content, serialized)
+      : insertIntoSection(content, this.settings.quickMemoHeading, serialized);
     await this.vault.modify(filePath, updated);
-    const parsed = this.parser.parseFile(filePath, draft.date, updated).records;
+    const parsed = this.parser.parseFile(filePath, draft.date, updated, this.settings.parseMode).records;
     if (id) {
       const matched = parsed.find((record) => record.id === id);
       if (matched) return matched;
@@ -33,7 +35,7 @@ export class MarkdownRecordRepository {
     const resolution = await this.resolver.resolve(date);
     if (!this.vault.exists(resolution.filePath)) return [];
     const content = await this.vault.read(resolution.filePath);
-    return this.parser.parseFile(resolution.filePath, date, content).records;
+    return this.parser.parseFile(resolution.filePath, date, content, this.settings.parseMode).records;
   }
 
   async updateRecord(id: string, changes: { type?: QuickMemoType; content?: string; body?: string; completed?: boolean }): Promise<void> {
@@ -69,7 +71,7 @@ export class MarkdownRecordRepository {
     for (const filePath of this.quickMemoFiles()) {
       let content = await this.vault.read(filePath);
       const date = dateFromPath(filePath);
-      const records = this.parser.parseFile(filePath, date, content).records.filter((record) => record.tags.includes(tag));
+      const records = this.parser.parseFile(filePath, date, content, this.settings.parseMode).records.filter((record) => record.tags.includes(tag));
       if (records.length === 0) continue;
       // Replace bottom-up so earlier line numbers stay valid as we mutate the text.
       for (const record of records.sort((a, b) => b.lineStart - a.lineStart)) {
@@ -93,7 +95,7 @@ export class MarkdownRecordRepository {
     const resolution = await this.resolver.resolve(date);
     if (!this.vault.exists(resolution.filePath)) return 0;
     let content = await this.vault.read(resolution.filePath);
-    const records = this.parser.parseFile(resolution.filePath, date, content).records.filter((record) => !record.id);
+    const records = this.parser.parseFile(resolution.filePath, date, content, this.settings.parseMode).records.filter((record) => !record.id);
     let count = 0;
     for (const record of records) {
       const id = createBlockId(record.date, record.time, record.contentHash.slice(0, 6));
@@ -110,7 +112,7 @@ export class MarkdownRecordRepository {
     for (const filePath of this.quickMemoFiles()) {
       const date = dateFromPath(filePath);
       const content = await this.vault.read(filePath);
-      const record = this.parser.parseFile(filePath, date, content).records.find((candidate) => candidate.id === id);
+      const record = this.parser.parseFile(filePath, date, content, this.settings.parseMode).records.find((candidate) => candidate.id === id);
       if (record) return { filePath, record };
     }
     throw new Error(`Record not found: ${id}`);
@@ -155,6 +157,12 @@ function insertIntoSection(markdown: string, heading: string, serialized: string
     : ['', serialized, ''];
 
   return [...before, ...section, ...after].join('\n');
+}
+
+/** Append `text` at the end of the markdown file, with a blank line separator. */
+function insertAtEnd(markdown: string, text: string): string {
+  const trimmed = markdown.replace(/\n+$/u, '');
+  return `${trimmed}\n\n${text}\n`;
 }
 
 function escapeRegExp(text: string): string {

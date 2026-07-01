@@ -19,16 +19,25 @@ export class QuickMemoParser {
     this.heading = typeof heading === 'function' ? heading : () => heading;
   }
 
-  parseFile(filePath: string, date: string, markdown: string): ParseResult {
+  parseFile(filePath: string, date: string, markdown: string, parseMode?: 'heading' | 'full'): ParseResult {
+    const mode = parseMode ?? 'heading';
     const lines = markdown.split('\n');
-    const section = this.findSection(lines);
-    if (!section) return { records: [], warnings: [] };
+
+    // Determine the scan range: section-based (heading mode) or entire file (full mode).
+    let startLine = 0;
+    let endLine = lines.length;
+    if (mode === 'heading') {
+      const section = this.findSection(lines);
+      if (!section) return { records: [], warnings: [] };
+      startLine = section.start;
+      endLine = section.end;
+    }
 
     const records: QuickMemoRecord[] = [];
     const warnings: ParseWarning[] = [];
-    let index = section.start;
+    let index = startLine;
 
-    while (index < section.end) {
+    while (index < endLine) {
       const line = lines[index];
       if (!line.trim()) {
         index += 1;
@@ -36,7 +45,11 @@ export class QuickMemoParser {
       }
 
       if (!line.startsWith('- ')) {
-        warnings.push({ filePath, line: index + 1, message: 'Non-list content inside Quick Memo section was ignored.', raw: line });
+        // In full mode, we silently skip non-memo lines (they're just diary content).
+        // In heading mode, non-list content inside the section is a structure warning.
+        if (mode === 'heading') {
+          warnings.push({ filePath, line: index + 1, message: 'Non-list content inside Quick Memo section was ignored.', raw: line });
+        }
         index += 1;
         continue;
       }
@@ -44,7 +57,7 @@ export class QuickMemoParser {
       const bodyLines: string[] = [];
       let lineEnd = index;
       let next = index + 1;
-      while (next < section.end && isIndentedContinuation(lines[next])) {
+      while (next < endLine && isIndentedContinuation(lines[next])) {
         bodyLines.push(lines[next].replace(/^(  |\t)/u, ''));
         lineEnd = next;
         next += 1;
@@ -53,7 +66,7 @@ export class QuickMemoParser {
       const parsed = this.parseRecordLine(line, bodyLines.join('\n'), filePath, date, index + 1, lineEnd + 1);
       if (parsed) {
         records.push(parsed);
-      } else {
+      } else if (mode === 'heading') {
         warnings.push({ filePath, line: index + 1, message: 'Quick Memo list item did not match a supported record format.', raw: line });
       }
       index = next;
@@ -219,7 +232,7 @@ export class QuickMemoParser {
 }
 
 function isIndentedContinuation(line: string): boolean {
-  return line.startsWith('  ') || line.startsWith('\t');
+  return line.startsWith('  ') || line.startsWith('\t') || line.startsWith('> ');
 }
 
 function extractTags(text: string): string[] {
