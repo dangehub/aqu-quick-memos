@@ -18,6 +18,11 @@ export class QuickMemoView extends ItemView {
   /** Directory of the currently selected date's memo file — set during render,
    *  used by formatAttachmentLink for relative-path computation. */
   private currentMemoDir = '';
+  private sidebarCollapsed = false;
+  /** `'all'` = show records across all dates; `'date'` = filter to selectedDate. */
+  private viewMode: 'all' | 'date' = 'all';
+  /** Number of records currently visible (lazy load). */
+  private visibleCount = 50;
   /** Child components created by MarkdownRenderer during a render; unloaded on
    *  the next full re-render so the live markdown rendering doesn't leak. */
   private renderChildren: Component[] = [];
@@ -28,6 +33,7 @@ export class QuickMemoView extends ItemView {
     private readonly repository: MarkdownRecordRepository,
     private readonly index: IndexService,
     private readonly resolver: DailyNoteResolver,
+    private readonly saveSettings: () => Promise<void>,
   ) {
     super(leaf);
   }
@@ -105,10 +111,7 @@ export class QuickMemoView extends ItemView {
   }
 
   private notifyWarnings(): void {
-    const n = this.index.warnings().length;
-    if (n > 0) {
-      new Notice(`Quick Memo 解析到 ${n} 条格式冲突，请检查对应 Daily Note。`);
-    }
+    // Warnings are shown inline in the sidebar — no intrusive notice.
   }
 
   private showFatalError(error: unknown): void {
@@ -143,11 +146,15 @@ export class QuickMemoView extends ItemView {
     const restoreFocus = captureFocusRestore(this.contentEl);
 
     const allRecords = this.index.query({});
-    const filtered = filterRecordsForView(allRecords, { ...this.filters, selectedDate: this.selectedDate });
+    const dateFilter = this.viewMode === 'date' ? { selectedDate: this.selectedDate } : {};
+    const filtered = filterRecordsForView(allRecords, { ...this.filters, ...dateFilter });
     const records = sortRecordsForDisplay(filtered, this.settings.sortDirection);
+    const hasMore = records.length > this.visibleCount;
+    const visible = records.slice(0, this.visibleCount);
     renderOverview(this.contentEl, {
       settings: this.settings,
-      records,
+      records: visible,
+      recordsTotal: records.length,
       tags: this.index.tags(),
       heatmap: this.index.heatmap(),
       selectedDate: this.selectedDate,
@@ -156,6 +163,10 @@ export class QuickMemoView extends ItemView {
       openMenuRecordId: this.openMenuRecordId,
       filters: this.filters,
       stats: computeStats(allRecords),
+      warningCount: this.index.warnings().length,
+      sortDirection: this.settings.sortDirection,
+      sidebarCollapsed: this.sidebarCollapsed,
+      viewMode: this.viewMode,
       markdown: {
         render: (source, el) => {
           const component = new Component();
@@ -168,6 +179,8 @@ export class QuickMemoView extends ItemView {
       onSave: (draft) => void this.saveDraft(draft),
       onSelectDate: (date) => {
         this.selectedDate = date;
+        this.viewMode = 'date';
+        this.visibleCount = 50;
         this.render();
       },
       onToggleTodo: (record) => {
@@ -213,6 +226,24 @@ export class QuickMemoView extends ItemView {
         const menu = new Menu();
         menu.addItem((item) => item.setTitle('删除标签').setIcon('trash').onClick(() => void this.deleteTag(tag)));
         menu.showAtMouseEvent(event);
+      },
+      onToggleSidebar: () => {
+        this.sidebarCollapsed = !this.sidebarCollapsed;
+        this.render();
+      },
+      onToggleSort: () => {
+        this.settings.sortDirection = this.settings.sortDirection === 'asc' ? 'desc' : 'asc';
+        void this.saveSettings();
+        this.render();
+      },
+      onLoadMore: () => {
+        this.visibleCount += 50;
+        this.render();
+      },
+      onShowAll: () => {
+        this.viewMode = 'all';
+        this.visibleCount = 50;
+        this.render();
       },
     });
 

@@ -63,7 +63,7 @@ export default class QuickMemoPlugin extends Plugin {
     const repository = new MarkdownRecordRepository(vault, resolver, parser, this.settings);
     this.index = new IndexService(vault, parser);
 
-    this.registerView(VIEW_TYPE_QUICK_MEMO, (leaf) => new QuickMemoView(leaf, this.settings, repository, this.index, resolver));
+    this.registerView(VIEW_TYPE_QUICK_MEMO, (leaf) => new QuickMemoView(leaf, this.settings, repository, this.index, resolver, () => this.saveSettings()));
 
     this.addRibbonIcon('notebook-pen', 'Open Quick Memo', () => {
       void this.activateView();
