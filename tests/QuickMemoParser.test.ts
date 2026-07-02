@@ -10,7 +10,7 @@ describe('QuickMemoParser', () => {
     expect(result.records).toHaveLength(4);
     expect(result.records.map((record) => record.type)).toEqual(['memo', 'memo', 'todo', 'todo']);
     expect(result.records[0]).toMatchObject({
-      id: 'oqm-20260618-091200-a1b2',
+      id: 'omm-20260618-091200-a1b2',
       date: '2026-06-18',
       time: '09:12',
       type: 'memo',
@@ -42,9 +42,9 @@ describe('QuickMemoParser', () => {
   });
 
   it('serializes drafts into list item markdown with optional block id', () => {
-    expect(parser.serializeRecord({ date: '2026-06-18', time: '09:12', type: 'memo', content: 'hello #tag', body: 'line 2' }, 'oqm-20260618-091200-a1b2')).toBe('- 09:12\n  hello #tag\n  line 2 ^oqm-20260618-091200-a1b2');
+    expect(parser.serializeRecord({ date: '2026-06-18', time: '09:12', type: 'memo', content: 'hello #tag', body: 'line 2' }, 'omm-20260618-091200-a1b2')).toBe('- 09:12\n  hello #tag\n  line 2 ^omm-20260618-091200-a1b2');
     expect(parser.serializeRecord({ date: '2026-06-18', time: '10:20', type: 'todo', content: 'task', completed: false }, undefined)).toBe('- [ ] 10:20 task');
-    expect(parser.serializeRecord({ date: '2026-06-18', time: '10:20', type: 'todo', content: 'task', completed: true }, 'oqm-20260618-102000-e5f6')).toBe('- [x] 10:20 task ^oqm-20260618-102000-e5f6');
+    expect(parser.serializeRecord({ date: '2026-06-18', time: '10:20', type: 'todo', content: 'task', completed: true }, 'omm-20260618-102000-e5f6')).toBe('- [x] 10:20 task ^omm-20260618-102000-e5f6');
   });
 
   it('warns for non-list content inside Quick Memo section', () => {
@@ -74,17 +74,17 @@ describe('QuickMemoParser', () => {
   });
 
   it('warns once per duplicate Quick Memo block id and keeps all records', () => {
-    const id = 'oqm-20260618-090000-dup';
+    const id = 'omm-20260618-090000-dup';
     const markdown = `## Quick Memo
 
 - 09:00 first occurrence #a ^${id}
 - 09:30 second occurrence #b ^${id}
-- 10:00 unrelated record #c ^oqm-20260618-100000-uniq
+- 10:00 unrelated record #c ^omm-20260618-100000-uniq
 `;
     const result = parser.parseFile('Daily Notes/2026-06-18.md', '2026-06-18', markdown);
 
     expect(result.records).toHaveLength(3);
-    expect(result.records.map((record) => record.id)).toEqual([id, id, 'oqm-20260618-100000-uniq']);
+    expect(result.records.map((record) => record.id)).toEqual([id, id, 'omm-20260618-100000-uniq']);
 
     const duplicateWarnings = result.warnings.filter((warning) => warning.message.includes('Duplicate Quick Memo block id'));
     expect(duplicateWarnings).toHaveLength(1);
@@ -122,11 +122,11 @@ describe('QuickMemoParser', () => {
   });
 
   it('parses bare memo with tab-indented block id at end', () => {
-    const markdown = '## Quick Memo\n\n- 09:12\n\thello #tag\n\tline 2 ^oqm-20260618-091200-a1b2\n';
+    const markdown = '## Quick Memo\n\n- 09:12\n\thello #tag\n\tline 2 ^omm-20260618-091200-a1b2\n';
     const result = parser.parseFile('test.md', '2026-06-18', markdown);
     expect(result.records).toHaveLength(1);
     expect(result.records[0]).toMatchObject({
-      id: 'oqm-20260618-091200-a1b2',
+      id: 'omm-20260618-091200-a1b2',
       type: 'memo',
       time: '09:12',
       content: 'hello #tag',

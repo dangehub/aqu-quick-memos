@@ -1,6 +1,6 @@
 import { BLOCK_ID_PREFIX } from '../constants';
 
-const QUICK_MEMO_BLOCK_ID = /\s\^(oqm-[0-9]{8}-[0-9]{6}-[a-z0-9]+)\s*$/u;
+const QUICK_MEMO_BLOCK_ID = /\s\^(\S+)\s*$/u;
 
 export function createBlockId(date: string, time: string, suffix: string): string {
   const compactDate = date.replace(/[^0-9]/gu, '');

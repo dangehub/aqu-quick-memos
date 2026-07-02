@@ -1,6 +1,6 @@
 {
   "name": "oh-my-memo",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Markdown-native Obsidian quick memo plugin",
   "main": "main.js",
   "scripts": {

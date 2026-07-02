@@ -3,17 +3,17 @@ import { contentHash, createBlockId, extractBlockId, randomIdSuffix, stripBlockI
 
 describe('id helpers', () => {
   it('creates deterministic block ids from date, time, and suffix', () => {
-    expect(createBlockId('2026-06-18', '09:12', 'a1b2')).toBe('oqm-20260618-091200-a1b2');
+    expect(createBlockId('2026-06-18', '09:12', 'a1b2')).toBe('omm-20260618-091200-a1b2');
   });
 
   it('extracts and strips quick memo block ids', () => {
-    const line = '- 09:12 [闪念] idea #tag ^oqm-20260618-091200-a1b2';
-    expect(extractBlockId(line)).toBe('oqm-20260618-091200-a1b2');
+    const line = '- 09:12 [闪念] idea #tag ^omm-20260618-091200-a1b2';
+    expect(extractBlockId(line)).toBe('omm-20260618-091200-a1b2');
     expect(stripBlockId(line)).toBe('- 09:12 [闪念] idea #tag');
   });
 
-  it('ignores non quick memo block ids', () => {
-    expect(extractBlockId('- text ^not-ours')).toBeUndefined();
+  it('extracts any block id (Obsidian native, no prefix constraint)', () => {
+    expect(extractBlockId('- text ^not-ours')).toBe('not-ours');
   });
 
   it('hashes equivalent whitespace consistently', () => {

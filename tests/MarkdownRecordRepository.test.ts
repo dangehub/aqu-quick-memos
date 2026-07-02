@@ -18,7 +18,7 @@ describe('MarkdownRecordRepository', () => {
     const vault = new FakeVault({ '2026-06-18.md': '# Day\n\n## Quick Memo\n' });
     const repo = makeRepo(vault);
     await repo.appendRecord({ date: '2026-06-18', time: '09:12', type: 'memo', content: 'idea #tag', body: 'line 2' }, 'a1b2');
-    expect(await vault.read('2026-06-18.md')).toContain('- 09:12\n  idea #tag\n  line 2 ^oqm-20260618-091200-a1b2');
+    expect(await vault.read('2026-06-18.md')).toContain('- 09:12\n  idea #tag\n  line 2 ^omm-20260618-091200-a1b2');
   });
 
   it('creates a missing Quick Memo section', async () => {
@@ -26,12 +26,12 @@ describe('MarkdownRecordRepository', () => {
     const repo = makeRepo(vault);
     await repo.appendRecord({ date: '2026-06-18', time: '10:00', type: 'memo', content: 'plain' }, 'a1b2');
     expect(await vault.read('2026-06-18.md')).toContain('## Quick Memo');
-    expect(await vault.read('2026-06-18.md')).toContain('- 10:00 plain ^oqm-20260618-100000-a1b2');
+    expect(await vault.read('2026-06-18.md')).toContain('- 10:00 plain ^omm-20260618-100000-a1b2');
   });
 
   it('reads records for a date', async () => {
     const vault = new FakeVault({
-      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- 09:12 idea #a ^oqm-20260618-091200-a1b2\n- [ ] 10:20 task ^oqm-20260618-102000-c3d4\n',
+      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- 09:12 idea #a ^omm-20260618-091200-a1b2\n- [ ] 10:20 task ^omm-20260618-102000-c3d4\n',
     });
     const repo = makeRepo(vault);
     const records = await repo.readRecords('2026-06-18');
@@ -42,31 +42,31 @@ describe('MarkdownRecordRepository', () => {
 
   it('updates a record', async () => {
     const vault = new FakeVault({
-      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- 09:12 old content ^oqm-20260618-091200-a1b2\n',
+      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- 09:12 old content ^omm-20260618-091200-a1b2\n',
     });
     const repo = makeRepo(vault);
-    await repo.updateRecord('oqm-20260618-091200-a1b2', { type: 'memo', content: 'new #tag', body: 'body' });
+    await repo.updateRecord('omm-20260618-091200-a1b2', { type: 'memo', content: 'new #tag', body: 'body' });
     const content = await vault.read('2026-06-18.md');
-    expect(content).toContain('- 09:12\n  new #tag\n  body ^oqm-20260618-091200-a1b2');
+    expect(content).toContain('- 09:12\n  new #tag\n  body ^omm-20260618-091200-a1b2');
   });
 
   it('toggles a todo', async () => {
     const vault = new FakeVault({
-      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- [ ] 10:20 task ^oqm-20260618-102000-c3d4\n',
+      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- [ ] 10:20 task ^omm-20260618-102000-c3d4\n',
     });
     const repo = makeRepo(vault);
-    await repo.toggleTodo('oqm-20260618-102000-c3d4');
-    expect(await vault.read('2026-06-18.md')).toContain('- [x] 10:20 task ^oqm-20260618-102000-c3d4');
+    await repo.toggleTodo('omm-20260618-102000-c3d4');
+    expect(await vault.read('2026-06-18.md')).toContain('- [x] 10:20 task ^omm-20260618-102000-c3d4');
   });
 
   it('deletes a record', async () => {
     const vault = new FakeVault({
-      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- 09:12 idea ^oqm-20260618-091200-a1b2\n- [ ] 10:20 task ^oqm-20260618-102000-c3d4\n',
+      '2026-06-18.md': '# Day\n\n## Quick Memo\n\n- 09:12 idea ^omm-20260618-091200-a1b2\n- [ ] 10:20 task ^omm-20260618-102000-c3d4\n',
     });
     const repo = makeRepo(vault);
-    await repo.deleteRecord('oqm-20260618-091200-a1b2');
-    expect(await vault.read('2026-06-18.md')).not.toContain('oqm-20260618-091200-a1b2');
-    expect(await vault.read('2026-06-18.md')).toContain('oqm-20260618-102000-c3d4');
+    await repo.deleteRecord('omm-20260618-091200-a1b2');
+    expect(await vault.read('2026-06-18.md')).not.toContain('omm-20260618-091200-a1b2');
+    expect(await vault.read('2026-06-18.md')).toContain('omm-20260618-102000-c3d4');
   });
 
   it('returns the appended record', async () => {

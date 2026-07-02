@@ -108,6 +108,16 @@ export class MarkdownRecordRepository {
     return count;
   }
 
+  /** Generate a block ID for a single record and write it to the file. Returns the new ID. */
+  async ensureBlockId(record: QuickMemoRecord): Promise<string> {
+    const id = createBlockId(record.date, record.time, record.contentHash.slice(0, 6));
+    const content = await this.vault.read(record.filePath);
+    const lines = content.split('\n');
+    lines[record.lineStart - 1] = `${lines[record.lineStart - 1]} ^${id}`;
+    await this.vault.modify(record.filePath, lines.join('\n'));
+    return id;
+  }
+
   private async locateById(id: string): Promise<{ filePath: string; record: QuickMemoRecord }> {
     for (const filePath of this.quickMemoFiles()) {
       const date = dateFromPath(filePath);

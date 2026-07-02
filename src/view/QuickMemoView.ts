@@ -231,8 +231,7 @@ export class QuickMemoView extends ItemView {
       },
       onCopyBlock: (record) => {
         this.openMenuRecordId = undefined;
-        this.copyBlock(record);
-        this.render();
+        void this.copyBlock(record).then(() => this.render());
       },
       onOpenSource: (record) => {
         this.openMenuRecordId = undefined;
@@ -543,14 +542,15 @@ export class QuickMemoView extends ItemView {
     this.render();
   }
 
-  private copyBlock(record: QuickMemoRecord): void {
-    if (!record.id) {
-      new Notice('该记录缺少块 ID，无法复制块链接。');
-      return;
+  private async copyBlock(record: QuickMemoRecord): Promise<void> {
+    let id = record.id;
+    if (!id) {
+      id = await this.repository.ensureBlockId(record);
+      // Update the index so future operations on this record work immediately.
+      await this.index.refreshChangedFiles();
     }
-    // Extract just the filename without .md extension (e.g. "2026-07-01" from "每日工作/2026/07/2026-07-01.md")
     const basename = record.filePath.split('/').pop()?.replace(/\.md$/u, '') ?? record.filePath;
-    const link = `![[${basename}#^${record.id}]]`;
+    const link = `![[${basename}#^${id}]]`;
     void navigator.clipboard.writeText(link);
     new Notice('已复制块链接');
   }
